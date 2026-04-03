@@ -9,3 +9,7 @@ export type {
   ToolType,
   FilterOptions,
 } from "./core/types";
+export { renderJsonReport } from "./reporters/json";
+export { renderMarkdownReport } from "./reporters/markdown";
+export { renderTerminalReport } from "./reporters/terminal";
+export { runCli } from "./cli/main";
