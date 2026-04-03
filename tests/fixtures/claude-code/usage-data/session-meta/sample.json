@@ -1,8 +1,14 @@
 {
-  "sessionId": "sess-001",
-  "projectPath": "/Users/jassy/demo",
-  "summary": "修复了登录Bug",
-  "goal": "修复认证系统",
-  "conclusion": "已完成",
-  "firstPrompt": "帮我看一下登录的问题"
+  "session_id": "sess-001",
+  "project_path": "/Users/jassy/demo",
+  "start_time": "2026-04-03T10:00:00.000Z",
+  "duration_minutes": 30,
+  "user_message_count": 1,
+  "assistant_message_count": 2,
+  "tool_counts": { "Read": 2, "Edit": 1 },
+  "input_tokens": 3500,
+  "output_tokens": 2000,
+  "first_prompt": "帮我看一下登录的问题",
+  "languages": {},
+  "git_commits": 1
 }

@@ -1,33 +1,38 @@
-/** Claude Code 数据类型定义 */
+/** Claude Code 数据类型定义 — 匹配真实 ~/.claude/ 格式 */
 
-/** usage-data/facets/*.json 中的会话摘要 */
+/** usage-data/facets/{id}.json — session 评价/分析 */
 export interface FacetEntry {
-  sessionId: string;
-  date: string;
-  model: string;
-  totalTokens: number;
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadTokens: number;
-  cacheWriteTokens: number;
+  session_id: string;
+  underlying_goal?: string;
+  outcome?: string;
+  brief_summary?: string;
+  session_type?: string;
+  goal_categories?: Record<string, number>;
 }
 
-/** usage-data/session-meta/*.json 中的会话元数据 */
+/** usage-data/session-meta/{id}.json — 核心 session 元数据 */
 export interface SessionMeta {
-  sessionId: string;
-  projectPath?: string;
-  summary?: string;
-  goal?: string;
-  conclusion?: string;
-  firstPrompt?: string;
+  session_id: string;
+  project_path?: string;
+  start_time?: string;
+  duration_minutes?: number;
+  user_message_count?: number;
+  assistant_message_count?: number;
+  tool_counts?: Record<string, number>;
+  input_tokens?: number;
+  output_tokens?: number;
+  first_prompt?: string;
+  languages?: Record<string, number>;
+  git_commits?: number;
 }
 
 /** JSONL 中 assistant message 的 usage 字段 */
 export interface MessageUsage {
   input_tokens: number;
   output_tokens: number;
-  cache_read_input_tokens: number;
-  cache_creation_input_tokens: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  server_tool_use?: Record<string, number>;
 }
 
 /** JSONL 中 content block 类型 */
@@ -38,19 +43,19 @@ export interface ContentBlock {
   id?: string;
 }
 
-/** JSONL 行的消息结构 */
-export interface JournalMessage {
-  role: "user" | "assistant";
-  content: string | ContentBlock[];
-  usage?: MessageUsage;
-}
-
-/** JSONL 行 */
+/** JSONL 行 — 真实格式 */
 export interface JournalLine {
-  type: "human" | "assistant";
-  message: JournalMessage;
-  timestamp: string;
+  type: "user" | "assistant" | "system" | "file-history-snapshot" | string;
   sessionId: string;
+  timestamp: string;
+  uuid?: string;
+  cwd?: string;
+  message?: {
+    role?: string;
+    model?: string;
+    content?: string | ContentBlock[];
+    usage?: MessageUsage;
+  };
 }
 
 /** 中间合并数据结构 */
@@ -63,11 +68,11 @@ export interface SessionAccumulator {
   firstPrompt?: string;
   summary?: string;
   goal?: string;
-  conclusion?: string;
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
   cacheWriteTokens: number;
   toolUsage: Record<string, number>;
   hasJsonlData: boolean;
+  hasMetaData: boolean;
 }

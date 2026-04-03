@@ -1,22 +1,8 @@
-[
-  {
-    "sessionId": "sess-001",
-    "date": "2026-04-03",
-    "model": "claude-sonnet-4-6",
-    "totalTokens": 5000,
-    "inputTokens": 3000,
-    "outputTokens": 2000,
-    "cacheReadTokens": 500,
-    "cacheWriteTokens": 100
-  },
-  {
-    "sessionId": "sess-002",
-    "date": "2026-04-03",
-    "model": "claude-opus-4-6",
-    "totalTokens": 8000,
-    "inputTokens": 5000,
-    "outputTokens": 3000,
-    "cacheReadTokens": 800,
-    "cacheWriteTokens": 200
-  }
-]
+{
+  "session_id": "sess-001",
+  "underlying_goal": "修复认证系统",
+  "brief_summary": "修复了登录Bug",
+  "outcome": "achieved",
+  "session_type": "single_task",
+  "goal_categories": { "bug_fix": 1 }
+}

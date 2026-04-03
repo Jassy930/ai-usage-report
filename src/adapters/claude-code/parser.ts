@@ -1,4 +1,4 @@
-/** Claude Code 数据解析与合并 */
+/** Claude Code 数据解析与合并 — 适配真实 ~/.claude/ 格式 */
 
 import type { SessionRecord } from "../../core/types";
 import type {
@@ -19,10 +19,11 @@ function createAccumulator(sessionId: string): SessionAccumulator {
     cacheWriteTokens: 0,
     toolUsage: {},
     hasJsonlData: false,
+    hasMetaData: false,
   };
 }
 
-/** 从 JSONL 行中提取会话数据，写入 accumulator */
+/** 从 JSONL 行中提取会话数据 */
 export function processJournalLines(
   lines: JournalLine[],
   acc: SessionAccumulator,
@@ -37,20 +38,42 @@ export function processJournalLines(
     acc.timestamp = sorted[0]!.timestamp;
   }
 
+  // 取第一条 user 消息作为 firstPrompt（如果 meta 没有提供）
+  for (const line of sorted) {
+    if (line.type === "user" && line.message?.content && !acc.firstPrompt) {
+      const content = line.message.content;
+      if (typeof content === "string") {
+        acc.firstPrompt = content.slice(0, 200);
+      } else if (Array.isArray(content)) {
+        const textBlock = content.find((b) => b.type === "text" && b.text);
+        if (textBlock?.text) {
+          acc.firstPrompt = textBlock.text.slice(0, 200);
+        }
+      }
+      break;
+    }
+  }
+
   for (const line of lines) {
     acc.messageCount++;
 
-    if (line.type === "assistant" && line.message.usage) {
+    if (line.type === "assistant" && line.message?.usage) {
       const u = line.message.usage;
       acc.inputTokens += u.input_tokens ?? 0;
       acc.outputTokens += u.output_tokens ?? 0;
       acc.cacheReadTokens += u.cache_read_input_tokens ?? 0;
       acc.cacheWriteTokens += u.cache_creation_input_tokens ?? 0;
+
+      // 提取 model
+      if (!acc.model && line.message.model) {
+        acc.model = line.message.model;
+      }
     }
 
     // 统计 tool_use blocks
     if (
       line.type === "assistant" &&
+      line.message?.content &&
       Array.isArray(line.message.content)
     ) {
       for (const block of line.message.content as ContentBlock[]) {
@@ -59,36 +82,47 @@ export function processJournalLines(
         }
       }
     }
+
+    // 从 user/assistant 消息中提取 projectPath（cwd 字段）
+    if (!acc.projectPath && line.cwd) {
+      acc.projectPath = line.cwd;
+    }
   }
 }
 
-/** 从 facets 数据填充 accumulator（仅当无 JSONL 数据时使用 token） */
-export function applyFacets(
-  facet: FacetEntry,
-  acc: SessionAccumulator,
-): void {
-  if (!acc.model) acc.model = facet.model;
-  if (!acc.timestamp) acc.timestamp = facet.date;
-
-  // 仅当无 JSONL token 数据时使用 facets token
-  if (!acc.hasJsonlData) {
-    acc.inputTokens = facet.inputTokens;
-    acc.outputTokens = facet.outputTokens;
-    acc.cacheReadTokens = facet.cacheReadTokens;
-    acc.cacheWriteTokens = facet.cacheWriteTokens;
-  }
-}
-
-/** 从 session-meta 填充 accumulator */
+/** 从 session-meta 填充 accumulator（核心数据源） */
 export function applySessionMeta(
   meta: SessionMeta,
   acc: SessionAccumulator,
 ): void {
-  if (meta.projectPath) acc.projectPath = meta.projectPath;
-  if (meta.summary) acc.summary = meta.summary;
-  if (meta.goal) acc.goal = meta.goal;
-  if (meta.conclusion) acc.conclusion = meta.conclusion;
-  if (meta.firstPrompt) acc.firstPrompt = meta.firstPrompt;
+  acc.hasMetaData = true;
+  if (meta.project_path) acc.projectPath = meta.project_path;
+  if (meta.start_time) acc.timestamp = meta.start_time;
+  if (meta.first_prompt && meta.first_prompt !== "No prompt") {
+    acc.firstPrompt = meta.first_prompt;
+  }
+
+  // 如果没有 JSONL 数据，使用 meta 的 token 和消息计数
+  if (!acc.hasJsonlData) {
+    acc.inputTokens = meta.input_tokens ?? 0;
+    acc.outputTokens = meta.output_tokens ?? 0;
+    acc.messageCount =
+      (meta.user_message_count ?? 0) + (meta.assistant_message_count ?? 0);
+  }
+
+  // tool_counts 补充
+  if (meta.tool_counts && Object.keys(acc.toolUsage).length === 0) {
+    acc.toolUsage = { ...meta.tool_counts };
+  }
+}
+
+/** 从 facets 填充 accumulator（补充 summary/goal） */
+export function applyFacets(
+  facet: FacetEntry,
+  acc: SessionAccumulator,
+): void {
+  if (facet.brief_summary) acc.summary = facet.brief_summary;
+  if (facet.underlying_goal) acc.goal = facet.underlying_goal;
 }
 
 /** 将 accumulator 转换为统一 SessionRecord */
@@ -106,7 +140,6 @@ export function toSessionRecord(acc: SessionAccumulator): SessionRecord {
     firstPrompt: acc.firstPrompt,
     summary: acc.summary,
     goal: acc.goal,
-    conclusion: acc.conclusion,
     toolUsage:
       Object.keys(acc.toolUsage).length > 0 ? acc.toolUsage : undefined,
     tokenBreakdown: {
@@ -127,33 +160,32 @@ export function mergeAllSources(
 ): SessionRecord[] {
   const map = new Map<string, SessionAccumulator>();
 
-  // 1. JSONL 数据（主要来源）
+  // 1. JSONL 数据（详细来源）
   for (const [sessionId, lines] of journals) {
     const acc = createAccumulator(sessionId);
     processJournalLines(lines, acc);
     map.set(sessionId, acc);
   }
 
-  // 2. Facets 数据补充
-  for (const facet of facets) {
-    let acc = map.get(facet.sessionId);
-    if (!acc) {
-      acc = createAccumulator(facet.sessionId);
-      map.set(facet.sessionId, acc);
-    }
-    applyFacets(facet, acc);
-  }
-
-  // 3. Session-meta 数据补充
+  // 2. Session-meta 数据（核心元数据）
   for (const meta of metas) {
-    let acc = map.get(meta.sessionId);
+    let acc = map.get(meta.session_id);
     if (!acc) {
-      acc = createAccumulator(meta.sessionId);
-      map.set(meta.sessionId, acc);
+      acc = createAccumulator(meta.session_id);
+      map.set(meta.session_id, acc);
     }
     applySessionMeta(meta, acc);
   }
 
-  // 转换为 SessionRecord[]
+  // 3. Facets 数据（补充 summary/goal）
+  for (const facet of facets) {
+    let acc = map.get(facet.session_id);
+    if (!acc) {
+      acc = createAccumulator(facet.session_id);
+      map.set(facet.session_id, acc);
+    }
+    applyFacets(facet, acc);
+  }
+
   return Array.from(map.values()).map(toSessionRecord);
 }
