@@ -1,4 +1,4 @@
-{"timestamp":"2026-04-03T10:00:00.000Z","type":"session_meta","payload":{"id":"codex-abc123","timestamp":"2026-04-03T10:00:00.000Z","cwd":"/Users/jassy/project","model_provider":"crs","cli_version":"0.118.0","git":{"remote_url":"https://github.com/jassy/project.git"}}}
+{"timestamp":"2026-04-03T10:00:00.000Z","type":"session_meta","payload":{"id":"codex-abc123","timestamp":"2026-04-03T10:00:00.000Z","cwd":"/Users/demo/project","model_provider":"crs","cli_version":"0.118.0","git":{"remote_url":"https://github.com/demo/project.git"}}}
 {"timestamp":"2026-04-03T10:00:01.000Z","type":"turn_context","payload":{"turn_id":"t1"}}
 {"timestamp":"2026-04-03T10:00:02.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t1","model_context_window":258400}}
 {"timestamp":"2026-04-03T10:00:03.000Z","type":"event_msg","payload":{"type":"user_message","message":"帮我修一下测试"}}

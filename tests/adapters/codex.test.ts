@@ -29,7 +29,7 @@ test("collectCodexSessions extracts session metadata", async () => {
   const s = sessions[0]!;
   expect(s.tool).toBe("codex");
   expect(s.sessionId).toBe("codex-abc123");
-  expect(s.projectPath).toBe("/Users/jassy/project");
+  expect(s.projectPath).toBe("/Users/demo/project");
   expect(s.timestamp).toBe("2026-04-03");
   // 1 user_message + 2 agent_message = 3 messages
   expect(s.messageCount).toBe(3);

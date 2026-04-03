@@ -177,7 +177,7 @@ git commit -m "feat: add codex history adapter"
 - Create: `src/adapters/claude-code/index.ts`
 - Create: `tests/fixtures/claude-code/usage-data/facets/sample.json`
 - Create: `tests/fixtures/claude-code/usage-data/session-meta/sample.json`
-- Create: `tests/fixtures/claude-code/projects/-Users-jassy-demo/session-1.jsonl`
+- Create: `tests/fixtures/claude-code/projects/-Users-demo-myapp/session-1.jsonl`
 - Create: `tests/adapters/claude-code.test.ts`
 
 **Step 1: 写失败测试，覆盖 facets/session-meta/jsonl 合并**

@@ -32,7 +32,7 @@ test("collectClaudeCodeSessions enriches with session-meta and facets", async ()
   expect(s1.goal).toBe("修复认证系统");
   // firstPrompt/projectPath from session-meta
   expect(s1.firstPrompt).toBe("帮我看一下登录的问题");
-  expect(s1.projectPath).toBe("/Users/jassy/demo");
+  expect(s1.projectPath).toBe("/Users/demo/myapp");
 });
 
 test("collectClaudeCodeSessions counts tool usage from JSONL", async () => {
