@@ -1,6 +1,9 @@
-{"type":"session_meta","session_id":"codex-abc123","model":"o4-mini","cwd":"/Users/jassy/project"}
-{"type":"turn_context","session_id":"codex-abc123","turn_id":"t1"}
-{"type":"event_msg","session_id":"codex-abc123","message":{"role":"user","content":[{"type":"input_text","text":"帮我修一下测试"}]}}
-{"type":"event_msg","session_id":"codex-abc123","message":{"role":"assistant","content":[{"type":"output_text","text":"好的，我来看看测试代码。"}]},"token_count":{"input_tokens":150,"output_tokens":80,"cached_input_tokens":30}}
-{"type":"turn_context","session_id":"codex-abc123","turn_id":"t2"}
-{"type":"event_msg","session_id":"codex-abc123","message":{"role":"assistant","content":[{"type":"output_text","text":"测试已修复完成。"}]},"token_count":{"input_tokens":200,"output_tokens":60,"cached_input_tokens":50}}
+{"timestamp":"2026-04-03T10:00:00.000Z","type":"session_meta","payload":{"id":"codex-abc123","timestamp":"2026-04-03T10:00:00.000Z","cwd":"/Users/jassy/project","model_provider":"crs","cli_version":"0.118.0","git":{"remote_url":"https://github.com/jassy/project.git"}}}
+{"timestamp":"2026-04-03T10:00:01.000Z","type":"turn_context","payload":{"turn_id":"t1"}}
+{"timestamp":"2026-04-03T10:00:02.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t1","model_context_window":258400}}
+{"timestamp":"2026-04-03T10:00:03.000Z","type":"event_msg","payload":{"type":"user_message","message":"帮我修一下测试"}}
+{"timestamp":"2026-04-03T10:00:04.000Z","type":"event_msg","payload":{"type":"agent_message","message":"好的，我来看看测试代码。","phase":"commentary"}}
+{"timestamp":"2026-04-03T10:00:05.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":150,"cached_input_tokens":30,"output_tokens":80,"total_tokens":230},"last_token_usage":{"input_tokens":150,"cached_input_tokens":30,"output_tokens":80,"total_tokens":230},"model_context_window":258400},"rate_limits":{"limit_id":"codex"}}}
+{"timestamp":"2026-04-03T10:00:10.000Z","type":"event_msg","payload":{"type":"agent_message","message":"测试已修复完成。","phase":"commentary"}}
+{"timestamp":"2026-04-03T10:00:11.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":350,"cached_input_tokens":80,"output_tokens":140,"total_tokens":490},"last_token_usage":{"input_tokens":200,"cached_input_tokens":50,"output_tokens":60,"total_tokens":260},"model_context_window":258400},"rate_limits":{"limit_id":"codex"}}}
+{"timestamp":"2026-04-03T10:00:12.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1"}}

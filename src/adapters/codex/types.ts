@@ -1,38 +1,46 @@
-/** Codex JSONL 事件类型定义 */
+/** Codex JSONL 事件类型定义 — 匹配真实 ~/.codex/sessions/ 格式 */
 
-export interface CodexSessionMeta {
-  type: "session_meta";
-  session_id: string;
-  model: string;
+/** 顶层事件包裹 */
+export interface CodexRawEvent {
+  timestamp: string;
+  type: string;
+  payload: Record<string, unknown>;
+}
+
+/** session_meta payload */
+export interface CodexSessionMetaPayload {
+  id: string;
+  timestamp: string;
   cwd: string;
+  model_provider?: string;
+  cli_version?: string;
+  git?: { remote_url?: string };
 }
 
-export interface CodexTurnContext {
-  type: "turn_context";
-  session_id: string;
-  turn_id: string;
+/** event_msg payload: token_count */
+export interface CodexTokenCountPayload {
+  type: "token_count";
+  info: {
+    total_token_usage: {
+      input_tokens: number;
+      cached_input_tokens: number;
+      output_tokens: number;
+      reasoning_output_tokens?: number;
+      total_tokens: number;
+    };
+  } | null;
 }
 
-export interface CodexTokenCount {
-  input_tokens: number;
-  output_tokens: number;
-  cached_input_tokens: number;
+/** event_msg payload: agent_message / user_message */
+export interface CodexMessagePayload {
+  type: "agent_message" | "user_message";
+  message: string;
+  phase?: string;
 }
 
-export interface CodexEventMsg {
-  type: "event_msg";
-  session_id: string;
-  message: {
-    role: "user" | "assistant";
-    content: Array<{ type: string; text: string }>;
-  };
-  token_count?: CodexTokenCount;
-}
-
-export type CodexEvent = CodexSessionMeta | CodexTurnContext | CodexEventMsg;
-
+/** history.jsonl 条目 */
 export interface CodexHistoryEntry {
   session_id: string;
-  prompt: string;
-  timestamp: string;
+  ts: number;
+  text: string;
 }

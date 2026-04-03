@@ -15,11 +15,11 @@ test("collectCodexSessions extracts correct token breakdown", async () => {
     codexDir: "tests/fixtures/codex",
   });
   const s = sessions[0]!;
-  // Two assistant messages: 150+200 input, 80+60 output, 30+50 cached
+  // 最终 token_count 快照: input=350, cached=80, output=140, total=490
   expect(s.tokenBreakdown.inputTokens).toBe(350);
   expect(s.tokenBreakdown.outputTokens).toBe(140);
   expect(s.tokenBreakdown.cacheReadTokens).toBe(80);
-  expect(s.tokenBreakdown.total).toBe(350 + 140);
+  expect(s.tokenBreakdown.total).toBe(490);
 });
 
 test("collectCodexSessions extracts session metadata", async () => {
@@ -29,10 +29,9 @@ test("collectCodexSessions extracts session metadata", async () => {
   const s = sessions[0]!;
   expect(s.tool).toBe("codex");
   expect(s.sessionId).toBe("codex-abc123");
-  expect(s.model).toBe("o4-mini");
   expect(s.projectPath).toBe("/Users/jassy/project");
   expect(s.timestamp).toBe("2026-04-03");
-  // 2 assistant messages + 1 user message = 3 event_msg lines
+  // 1 user_message + 2 agent_message = 3 messages
   expect(s.messageCount).toBe(3);
 });
 
