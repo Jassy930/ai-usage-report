@@ -1,0 +1,82 @@
+/**
+ * 统一采集入口
+ *
+ * 聚合多个工具的会话数据，支持工具选择与过滤。
+ */
+
+import { homedir } from "node:os";
+import { join } from "node:path";
+import type { SessionRecord, ToolType, FilterOptions } from "./types";
+import { filterSessions } from "./filters";
+import { parseSinceSpec } from "./time";
+import { collectCodexSessions } from "../adapters/codex";
+import { collectClaudeCodeSessions } from "../adapters/claude-code";
+
+/** collectAllSessions 的选项 */
+export interface CollectOptions {
+  /** 要采集的工具列表，默认采集全部 */
+  tools?: ToolType[];
+  /** 数据目录覆盖 */
+  roots?: {
+    codexDir?: string;
+    claudeDir?: string;
+  };
+  /** 时间范围规格，如 "7d", "1m", "1y" */
+  since?: string;
+  /** 项目路径关键字过滤 */
+  project?: string;
+  /** 模型名称关键字过滤 */
+  model?: string;
+}
+
+const ALL_TOOLS: ToolType[] = ["codex", "claude-code"];
+
+/**
+ * 统一采集所有会话，支持工具选择与过滤
+ *
+ * @param options - 采集选项
+ * @returns 按时间降序排列的 SessionRecord[]
+ */
+export async function collectAllSessions(
+  options: CollectOptions = {},
+): Promise<SessionRecord[]> {
+  const tools = options.tools?.length ? options.tools : ALL_TOOLS;
+  const home = homedir();
+  const codexDir = options.roots?.codexDir ?? join(home, ".codex");
+  const claudeDir = options.roots?.claudeDir ?? join(home, ".claude");
+
+  // 并行采集
+  const tasks: Promise<SessionRecord[]>[] = [];
+
+  if (tools.includes("codex")) {
+    tasks.push(collectCodexSessions({ codexDir }));
+  }
+  if (tools.includes("claude-code")) {
+    tasks.push(collectClaudeCodeSessions({ claudeDir }));
+  }
+
+  const results = await Promise.all(tasks);
+  let sessions = results.flat();
+
+  // 构建过滤选项
+  const filterOpts: FilterOptions = {};
+
+  if (options.since) {
+    filterOpts.since = parseSinceSpec(options.since);
+  }
+  if (options.project) {
+    filterOpts.project = options.project;
+  }
+  if (options.model) {
+    filterOpts.model = options.model;
+  }
+
+  sessions = filterSessions(sessions, filterOpts);
+
+  // 按时间降序排序
+  sessions.sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  );
+
+  return sessions;
+}
