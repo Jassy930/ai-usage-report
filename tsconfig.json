@@ -9,7 +9,7 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
     "rootDir": ".",
-    "types": ["bun-types"]
+    "types": ["@types/bun"]
   },
   "include": ["src", "tests"]
 }

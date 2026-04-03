@@ -4,10 +4,12 @@
   "type": "module",
   "main": "src/index.ts",
   "bin": {
-    "ai-usage-report": "src/cli/main.ts"
+    "ai-usage": "src/cli/main.ts"
   },
   "scripts": {
     "test": "bun test",
+    "typecheck": "bunx tsc --noEmit",
+    "check": "bun test && bunx tsc --noEmit",
     "dev": "bun run src/cli/main.ts"
   },
   "devDependencies": {
