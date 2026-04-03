@@ -1,0 +1,22 @@
+[
+  {
+    "sessionId": "sess-001",
+    "date": "2026-04-03",
+    "model": "claude-sonnet-4-6",
+    "totalTokens": 5000,
+    "inputTokens": 3000,
+    "outputTokens": 2000,
+    "cacheReadTokens": 500,
+    "cacheWriteTokens": 100
+  },
+  {
+    "sessionId": "sess-002",
+    "date": "2026-04-03",
+    "model": "claude-opus-4-6",
+    "totalTokens": 8000,
+    "inputTokens": 5000,
+    "outputTokens": 3000,
+    "cacheReadTokens": 800,
+    "cacheWriteTokens": 200
+  }
+]

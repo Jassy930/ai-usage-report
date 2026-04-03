@@ -1,0 +1,8 @@
+{
+  "sessionId": "sess-001",
+  "projectPath": "/Users/jassy/demo",
+  "summary": "修复了登录Bug",
+  "goal": "修复认证系统",
+  "conclusion": "已完成",
+  "firstPrompt": "帮我看一下登录的问题"
+}
