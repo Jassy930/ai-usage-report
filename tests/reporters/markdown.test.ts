@@ -116,15 +116,15 @@ describe("renderMarkdownReport", () => {
     expect(md.includes("Fix the bug")).toBe(true);
   });
 
-  test("formats large numbers with commas", () => {
+  test("formats large numbers with human-readable units", () => {
     const md = renderMarkdownReport(sampleReport);
-    // 1,500,000 or 1,000,000 should appear
-    expect(md.includes("1,000,000")).toBe(true);
+    // 1,000,000 tokens should show human-readable format
+    expect(md.includes("1.0M")).toBe(true);
   });
 
   test("includes token breakdown", () => {
     const md = renderMarkdownReport(sampleReport);
-    expect(md.includes("500,000")).toBe(true); // inputTokens
-    expect(md.includes("800,000")).toBe(true); // outputTokens
+    expect(md.includes("500,000 (500.0K)")).toBe(true); // inputTokens
+    expect(md.includes("800,000 (800.0K)")).toBe(true); // outputTokens
   });
 });

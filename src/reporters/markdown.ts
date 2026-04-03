@@ -3,11 +3,7 @@
  */
 
 import type { UsageReport } from "../core/report";
-
-/** 千分位格式化数字 */
-function fmt(n: number): string {
-  return n.toLocaleString("en-US");
-}
+import { fmt, fmtHuman, fmtTokens } from "./format";
 
 /**
  * 将 UsageReport 渲染为 Markdown 格式字符串
@@ -25,7 +21,7 @@ export function renderMarkdownReport(report: UsageReport): string {
   lines.push("");
   lines.push(`| Metric | Value |`);
   lines.push(`| --- | --- |`);
-  lines.push(`| Total Tokens | ${fmt(summary.totalTokens)} |`);
+  lines.push(`| Total Tokens | ${fmtTokens(summary.totalTokens)} |`);
   lines.push(`| Total Sessions | ${fmt(summary.totalSessions)} |`);
   lines.push(`| Total Messages | ${fmt(summary.totalMessages)} |`);
   lines.push(`| Active Days | ${fmt(summary.activeDays)} |`);
@@ -36,10 +32,10 @@ export function renderMarkdownReport(report: UsageReport): string {
   lines.push("");
   lines.push(`| Category | Tokens |`);
   lines.push(`| --- | --- |`);
-  lines.push(`| Input | ${fmt(summary.tokenBreakdown.inputTokens)} |`);
-  lines.push(`| Output | ${fmt(summary.tokenBreakdown.outputTokens)} |`);
-  lines.push(`| Cache Read | ${fmt(summary.tokenBreakdown.cacheReadTokens)} |`);
-  lines.push(`| Cache Write | ${fmt(summary.tokenBreakdown.cacheWriteTokens)} |`);
+  lines.push(`| Input | ${fmtTokens(summary.tokenBreakdown.inputTokens)} |`);
+  lines.push(`| Output | ${fmtTokens(summary.tokenBreakdown.outputTokens)} |`);
+  lines.push(`| Cache Read | ${fmtTokens(summary.tokenBreakdown.cacheReadTokens)} |`);
+  lines.push(`| Cache Write | ${fmtTokens(summary.tokenBreakdown.cacheWriteTokens)} |`);
   lines.push("");
 
   // 工具
@@ -48,7 +44,7 @@ export function renderMarkdownReport(report: UsageReport): string {
   lines.push(`| Tool | Sessions | Tokens | Messages |`);
   lines.push(`| --- | --- | --- | --- |`);
   for (const t of tools) {
-    lines.push(`| ${t.tool} | ${fmt(t.sessions)} | ${fmt(t.tokens)} | ${fmt(t.messages)} |`);
+    lines.push(`| ${t.tool} | ${fmt(t.sessions)} | ${fmtHuman(t.tokens)} | ${fmt(t.messages)} |`);
   }
   lines.push("");
 
@@ -58,7 +54,7 @@ export function renderMarkdownReport(report: UsageReport): string {
   lines.push(`| Project | Sessions | Tokens | Messages |`);
   lines.push(`| --- | --- | --- | --- |`);
   for (const p of projects) {
-    lines.push(`| ${p.project} | ${fmt(p.sessions)} | ${fmt(p.tokens)} | ${fmt(p.messages)} |`);
+    lines.push(`| ${p.project} | ${fmt(p.sessions)} | ${fmtHuman(p.tokens)} | ${fmt(p.messages)} |`);
   }
   lines.push("");
 
@@ -68,7 +64,7 @@ export function renderMarkdownReport(report: UsageReport): string {
   lines.push(`| Model | Sessions | Tokens | Messages |`);
   lines.push(`| --- | --- | --- | --- |`);
   for (const m of models) {
-    lines.push(`| ${m.model} | ${fmt(m.sessions)} | ${fmt(m.tokens)} | ${fmt(m.messages)} |`);
+    lines.push(`| ${m.model} | ${fmt(m.sessions)} | ${fmtHuman(m.tokens)} | ${fmt(m.messages)} |`);
   }
   lines.push("");
 
@@ -85,7 +81,7 @@ export function renderMarkdownReport(report: UsageReport): string {
         : s.firstPrompt
       : "-";
     lines.push(
-      `| ${s.sessionId} | ${s.tool} | ${s.model ?? "-"} | ${fmt(s.messageCount)} | ${fmt(s.tokenBreakdown.total)} | ${prompt} |`,
+      `| ${s.sessionId} | ${s.tool} | ${s.model ?? "-"} | ${fmt(s.messageCount)} | ${fmtHuman(s.tokenBreakdown.total)} | ${prompt} |`,
     );
   }
   lines.push("");

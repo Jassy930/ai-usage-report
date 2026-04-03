@@ -105,7 +105,7 @@ describe("renderTerminalReport", () => {
   test("包含 Top Sessions", () => {
     const text = renderTerminalReport(sampleReport);
     expect(text.includes("Refactor the auth module")).toBe(true);
-    expect(text.includes("58,000")).toBe(true);
+    expect(text.includes("58.0K")).toBe(true);
   });
 
   test("空数据有清晰提示", () => {

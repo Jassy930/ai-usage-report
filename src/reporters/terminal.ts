@@ -3,11 +3,7 @@
  */
 
 import type { UsageReport } from "../core/report";
-
-/** 千分位格式化 */
-function fmt(n: number): string {
-  return n.toLocaleString("en-US");
-}
+import { fmt, fmtHuman, fmtTokens } from "./format";
 
 /** 截断字符串 */
 function truncate(s: string, max: number): string {
@@ -53,19 +49,19 @@ export function renderTerminalReport(report: UsageReport): string {
   lines.push("  AI 使用报告 — 概览");
   lines.push(SEPARATOR);
   lines.push("");
-  lines.push(`  TOTAL TOKENS    ${rpad(fmt(summary.totalTokens), 14)}`);
-  lines.push(`  Sessions        ${rpad(fmt(summary.totalSessions), 14)}`);
-  lines.push(`  Messages        ${rpad(fmt(summary.totalMessages), 14)}`);
-  lines.push(`  Active Days     ${rpad(fmt(summary.activeDays), 14)}`);
+  lines.push(`  TOTAL TOKENS    ${rpad(fmtTokens(summary.totalTokens), 28)}`);
+  lines.push(`  Sessions        ${rpad(fmt(summary.totalSessions), 28)}`);
+  lines.push(`  Messages        ${rpad(fmt(summary.totalMessages), 28)}`);
+  lines.push(`  Active Days     ${rpad(fmt(summary.activeDays), 28)}`);
   lines.push("");
 
   // ── Token 明细 ──
   const bd = summary.tokenBreakdown;
   lines.push("  Token 明细:");
-  lines.push(`    Input         ${rpad(fmt(bd.inputTokens), 14)}`);
-  lines.push(`    Output        ${rpad(fmt(bd.outputTokens), 14)}`);
-  lines.push(`    Cache Read    ${rpad(fmt(bd.cacheReadTokens), 14)}`);
-  lines.push(`    Cache Write   ${rpad(fmt(bd.cacheWriteTokens), 14)}`);
+  lines.push(`    Input         ${rpad(fmtTokens(bd.inputTokens), 28)}`);
+  lines.push(`    Output        ${rpad(fmtTokens(bd.outputTokens), 28)}`);
+  lines.push(`    Cache Read    ${rpad(fmtTokens(bd.cacheReadTokens), 28)}`);
+  lines.push(`    Cache Write   ${rpad(fmtTokens(bd.cacheWriteTokens), 28)}`);
   lines.push("");
 
   // ── 工具维度 ──
@@ -75,9 +71,9 @@ export function renderTerminalReport(report: UsageReport): string {
   if (tools.length === 0) {
     lines.push("  （无数据）");
   } else {
-    lines.push(`  ${lpad("Tool", 16)}  ${rpad("Sessions", 10)}  ${rpad("Tokens", 12)}  ${rpad("Messages", 10)}`);
+    lines.push(`  ${lpad("Tool", 16)}  ${rpad("Sessions", 10)}  ${rpad("Tokens", 14)}  ${rpad("Messages", 10)}`);
     for (const t of tools) {
-      lines.push(`  ${lpad(t.tool, 16)}  ${rpad(fmt(t.sessions), 10)}  ${rpad(fmt(t.tokens), 12)}  ${rpad(fmt(t.messages), 10)}`);
+      lines.push(`  ${lpad(t.tool, 16)}  ${rpad(fmt(t.sessions), 10)}  ${rpad(fmtHuman(t.tokens), 14)}  ${rpad(fmt(t.messages), 10)}`);
     }
   }
   lines.push("");
@@ -89,10 +85,10 @@ export function renderTerminalReport(report: UsageReport): string {
   if (projects.length === 0) {
     lines.push("  （无数据）");
   } else {
-    lines.push(`  ${lpad("Project", 30)}  ${rpad("Sessions", 10)}  ${rpad("Tokens", 12)}  ${rpad("Messages", 10)}`);
+    lines.push(`  ${lpad("Project", 30)}  ${rpad("Sessions", 10)}  ${rpad("Tokens", 14)}  ${rpad("Messages", 10)}`);
     for (const p of projects) {
       const name = truncate(p.project, 30);
-      lines.push(`  ${lpad(name, 30)}  ${rpad(fmt(p.sessions), 10)}  ${rpad(fmt(p.tokens), 12)}  ${rpad(fmt(p.messages), 10)}`);
+      lines.push(`  ${lpad(name, 30)}  ${rpad(fmt(p.sessions), 10)}  ${rpad(fmtHuman(p.tokens), 14)}  ${rpad(fmt(p.messages), 10)}`);
     }
   }
   lines.push("");
@@ -104,9 +100,9 @@ export function renderTerminalReport(report: UsageReport): string {
   if (models.length === 0) {
     lines.push("  （无数据）");
   } else {
-    lines.push(`  ${lpad("Model", 20)}  ${rpad("Sessions", 10)}  ${rpad("Tokens", 12)}  ${rpad("Messages", 10)}`);
+    lines.push(`  ${lpad("Model", 20)}  ${rpad("Sessions", 10)}  ${rpad("Tokens", 14)}  ${rpad("Messages", 10)}`);
     for (const m of models) {
-      lines.push(`  ${lpad(m.model, 20)}  ${rpad(fmt(m.sessions), 10)}  ${rpad(fmt(m.tokens), 12)}  ${rpad(fmt(m.messages), 10)}`);
+      lines.push(`  ${lpad(m.model, 20)}  ${rpad(fmt(m.sessions), 10)}  ${rpad(fmtHuman(m.tokens), 14)}  ${rpad(fmt(m.messages), 10)}`);
     }
   }
   lines.push("");
@@ -121,7 +117,7 @@ export function renderTerminalReport(report: UsageReport): string {
   } else {
     for (const s of topN) {
       const prompt = s.firstPrompt ? truncate(s.firstPrompt, 40) : "(no prompt)";
-      lines.push(`  ${lpad(fmt(s.tokenBreakdown.total), 10)} tokens  ${lpad(s.tool, 12)}  ${lpad(s.model ?? "unknown", 12)}  ${prompt}`);
+      lines.push(`  ${lpad(fmtHuman(s.tokenBreakdown.total), 10)}  ${lpad(s.tool, 12)}  ${lpad(s.model ?? "unknown", 16)}  ${prompt}`);
     }
   }
   lines.push("");
