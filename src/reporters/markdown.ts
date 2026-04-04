@@ -3,7 +3,7 @@
  */
 
 import type { UsageReport } from "../core/report";
-import { fmt, fmtHuman, fmtTokens } from "./format";
+import { fmt, fmtHuman, fmtTokens, escapeMarkdownCell } from "./format";
 
 /**
  * 将 UsageReport 渲染为 Markdown 格式字符串
@@ -44,7 +44,7 @@ export function renderMarkdownReport(report: UsageReport): string {
   lines.push(`| Tool | Sessions | Tokens | Messages |`);
   lines.push(`| --- | --- | --- | --- |`);
   for (const t of tools) {
-    lines.push(`| ${t.tool} | ${fmt(t.sessions)} | ${fmtHuman(t.tokens)} | ${fmt(t.messages)} |`);
+    lines.push(`| ${escapeMarkdownCell(t.tool)} | ${fmt(t.sessions)} | ${fmtHuman(t.tokens)} | ${fmt(t.messages)} |`);
   }
   lines.push("");
 
@@ -54,7 +54,7 @@ export function renderMarkdownReport(report: UsageReport): string {
   lines.push(`| Project | Sessions | Tokens | Messages |`);
   lines.push(`| --- | --- | --- | --- |`);
   for (const p of projects) {
-    lines.push(`| ${p.project} | ${fmt(p.sessions)} | ${fmtHuman(p.tokens)} | ${fmt(p.messages)} |`);
+    lines.push(`| ${escapeMarkdownCell(p.project)} | ${fmt(p.sessions)} | ${fmtHuman(p.tokens)} | ${fmt(p.messages)} |`);
   }
   lines.push("");
 
@@ -64,7 +64,7 @@ export function renderMarkdownReport(report: UsageReport): string {
   lines.push(`| Model | Sessions | Tokens | Messages |`);
   lines.push(`| --- | --- | --- | --- |`);
   for (const m of models) {
-    lines.push(`| ${m.model} | ${fmt(m.sessions)} | ${fmtHuman(m.tokens)} | ${fmt(m.messages)} |`);
+    lines.push(`| ${escapeMarkdownCell(m.model)} | ${fmt(m.sessions)} | ${fmtHuman(m.tokens)} | ${fmt(m.messages)} |`);
   }
   lines.push("");
 
@@ -81,7 +81,7 @@ export function renderMarkdownReport(report: UsageReport): string {
         : s.firstPrompt
       : "-";
     lines.push(
-      `| ${s.sessionId} | ${s.tool} | ${s.model ?? "-"} | ${fmt(s.messageCount)} | ${fmtHuman(s.tokenBreakdown.total)} | ${prompt} |`,
+      `| ${escapeMarkdownCell(s.sessionId)} | ${escapeMarkdownCell(s.tool)} | ${escapeMarkdownCell(s.model ?? "-")} | ${fmt(s.messageCount)} | ${fmtHuman(s.tokenBreakdown.total)} | ${escapeMarkdownCell(prompt)} |`,
     );
   }
   lines.push("");

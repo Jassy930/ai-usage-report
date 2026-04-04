@@ -88,7 +88,7 @@ describe("filterSessions", () => {
       since: new Date("2026-03-15T00:00:00Z"),
     });
     expect(result).toHaveLength(1);
-    expect(result[0].sessionId).toBe("s1");
+    expect(result[0]!.sessionId).toBe("s1");
   });
 
   test("returns empty array when no matches", () => {

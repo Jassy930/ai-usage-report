@@ -3,7 +3,7 @@
  */
 
 import type { ParsedArgs } from "../args";
-import type { ToolType } from "../../core/types";
+import { resolveTools } from "../utils";
 import { collectAllSessions } from "../../core/collect";
 import { buildUsageReport } from "../../core/report";
 import { renderJsonReport } from "../../reporters/json";
@@ -35,10 +35,4 @@ export async function reportCommand(args: ParsedArgs): Promise<string> {
     default:
       return renderTerminalReport(report);
   }
-}
-
-function resolveTools(tool: string): ToolType[] | undefined {
-  if (tool === "codex") return ["codex"];
-  if (tool === "claude-code") return ["claude-code"];
-  return undefined; // all
 }

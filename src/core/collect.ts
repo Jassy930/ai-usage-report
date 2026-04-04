@@ -74,9 +74,7 @@ export async function collectAllSessions(
   sessions = filterSessions(sessions, filterOpts);
 
   // 按时间降序排序
-  sessions.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-  );
+  sessions.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
   return sessions;
 }

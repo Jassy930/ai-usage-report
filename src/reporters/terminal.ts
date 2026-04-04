@@ -12,12 +12,12 @@ function truncate(s: string, max: number): string {
 }
 
 /** 右对齐填充 */
-function rpad(s: string, w: number): string {
+function alignRight(s: string, w: number): string {
   return s.padStart(w);
 }
 
 /** 左对齐填充 */
-function lpad(s: string, w: number): string {
+function alignLeft(s: string, w: number): string {
   return s.padEnd(w);
 }
 
@@ -49,19 +49,19 @@ export function renderTerminalReport(report: UsageReport): string {
   lines.push("  AI 使用报告 — 概览");
   lines.push(SEPARATOR);
   lines.push("");
-  lines.push(`  TOTAL TOKENS    ${rpad(fmtTokens(summary.totalTokens), 28)}`);
-  lines.push(`  Sessions        ${rpad(fmt(summary.totalSessions), 28)}`);
-  lines.push(`  Messages        ${rpad(fmt(summary.totalMessages), 28)}`);
-  lines.push(`  Active Days     ${rpad(fmt(summary.activeDays), 28)}`);
+  lines.push(`  TOTAL TOKENS    ${alignRight(fmtTokens(summary.totalTokens), 28)}`);
+  lines.push(`  Sessions        ${alignRight(fmt(summary.totalSessions), 28)}`);
+  lines.push(`  Messages        ${alignRight(fmt(summary.totalMessages), 28)}`);
+  lines.push(`  Active Days     ${alignRight(fmt(summary.activeDays), 28)}`);
   lines.push("");
 
   // ── Token 明细 ──
   const bd = summary.tokenBreakdown;
   lines.push("  Token 明细:");
-  lines.push(`    Input         ${rpad(fmtTokens(bd.inputTokens), 28)}`);
-  lines.push(`    Output        ${rpad(fmtTokens(bd.outputTokens), 28)}`);
-  lines.push(`    Cache Read    ${rpad(fmtTokens(bd.cacheReadTokens), 28)}`);
-  lines.push(`    Cache Write   ${rpad(fmtTokens(bd.cacheWriteTokens), 28)}`);
+  lines.push(`    Input         ${alignRight(fmtTokens(bd.inputTokens), 28)}`);
+  lines.push(`    Output        ${alignRight(fmtTokens(bd.outputTokens), 28)}`);
+  lines.push(`    Cache Read    ${alignRight(fmtTokens(bd.cacheReadTokens), 28)}`);
+  lines.push(`    Cache Write   ${alignRight(fmtTokens(bd.cacheWriteTokens), 28)}`);
   lines.push("");
 
   // ── 工具维度 ──
@@ -71,9 +71,9 @@ export function renderTerminalReport(report: UsageReport): string {
   if (tools.length === 0) {
     lines.push("  （无数据）");
   } else {
-    lines.push(`  ${lpad("Tool", 16)}  ${rpad("Sessions", 10)}  ${rpad("Tokens", 14)}  ${rpad("Messages", 10)}`);
+    lines.push(`  ${alignLeft("Tool", 16)}  ${alignRight("Sessions", 10)}  ${alignRight("Tokens", 14)}  ${alignRight("Messages", 10)}`);
     for (const t of tools) {
-      lines.push(`  ${lpad(t.tool, 16)}  ${rpad(fmt(t.sessions), 10)}  ${rpad(fmtHuman(t.tokens), 14)}  ${rpad(fmt(t.messages), 10)}`);
+      lines.push(`  ${alignLeft(t.tool, 16)}  ${alignRight(fmt(t.sessions), 10)}  ${alignRight(fmtHuman(t.tokens), 14)}  ${alignRight(fmt(t.messages), 10)}`);
     }
   }
   lines.push("");
@@ -85,10 +85,10 @@ export function renderTerminalReport(report: UsageReport): string {
   if (projects.length === 0) {
     lines.push("  （无数据）");
   } else {
-    lines.push(`  ${lpad("Project", 30)}  ${rpad("Sessions", 10)}  ${rpad("Tokens", 14)}  ${rpad("Messages", 10)}`);
+    lines.push(`  ${alignLeft("Project", 30)}  ${alignRight("Sessions", 10)}  ${alignRight("Tokens", 14)}  ${alignRight("Messages", 10)}`);
     for (const p of projects) {
       const name = truncate(p.project, 30);
-      lines.push(`  ${lpad(name, 30)}  ${rpad(fmt(p.sessions), 10)}  ${rpad(fmtHuman(p.tokens), 14)}  ${rpad(fmt(p.messages), 10)}`);
+      lines.push(`  ${alignLeft(name, 30)}  ${alignRight(fmt(p.sessions), 10)}  ${alignRight(fmtHuman(p.tokens), 14)}  ${alignRight(fmt(p.messages), 10)}`);
     }
   }
   lines.push("");
@@ -100,9 +100,9 @@ export function renderTerminalReport(report: UsageReport): string {
   if (models.length === 0) {
     lines.push("  （无数据）");
   } else {
-    lines.push(`  ${lpad("Model", 20)}  ${rpad("Sessions", 10)}  ${rpad("Tokens", 14)}  ${rpad("Messages", 10)}`);
+    lines.push(`  ${alignLeft("Model", 20)}  ${alignRight("Sessions", 10)}  ${alignRight("Tokens", 14)}  ${alignRight("Messages", 10)}`);
     for (const m of models) {
-      lines.push(`  ${lpad(m.model, 20)}  ${rpad(fmt(m.sessions), 10)}  ${rpad(fmtHuman(m.tokens), 14)}  ${rpad(fmt(m.messages), 10)}`);
+      lines.push(`  ${alignLeft(m.model, 20)}  ${alignRight(fmt(m.sessions), 10)}  ${alignRight(fmtHuman(m.tokens), 14)}  ${alignRight(fmt(m.messages), 10)}`);
     }
   }
   lines.push("");
@@ -117,7 +117,7 @@ export function renderTerminalReport(report: UsageReport): string {
   } else {
     for (const s of topN) {
       const prompt = s.firstPrompt ? truncate(s.firstPrompt, 40) : "(no prompt)";
-      lines.push(`  ${lpad(fmtHuman(s.tokenBreakdown.total), 10)}  ${lpad(s.tool, 12)}  ${lpad(s.model ?? "unknown", 16)}  ${prompt}`);
+      lines.push(`  ${alignLeft(fmtHuman(s.tokenBreakdown.total), 10)}  ${alignLeft(s.tool, 12)}  ${alignLeft(s.model ?? "unknown", 16)}  ${prompt}`);
     }
   }
   lines.push("");

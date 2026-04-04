@@ -8,6 +8,8 @@ export interface CodexCollectOptions {
   codexDir: string;
 }
 
+const CONCURRENCY = 32;
+
 /**
  * 采集 Codex 会话数据，返回统一 SessionRecord[]
  */
@@ -23,12 +25,20 @@ export async function collectCodexSessions(
 
   const sessions: SessionRecord[] = [];
 
-  for (const { filePath, date } of files) {
-    const parsed = await parseSessionFile(filePath);
-    if (!parsed.sessionId) continue;
-
-    const firstPrompt = promptMap.get(parsed.sessionId);
-    sessions.push(toSessionRecord(parsed, date, firstPrompt));
+  // 分批并发解析
+  for (let i = 0; i < files.length; i += CONCURRENCY) {
+    const batch = files.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      batch.map(async ({ filePath, date }) => {
+        const parsed = await parseSessionFile(filePath);
+        if (!parsed.sessionId) return null;
+        const firstPrompt = promptMap.get(parsed.sessionId);
+        return toSessionRecord(parsed, date, firstPrompt);
+      }),
+    );
+    for (const r of results) {
+      if (r) sessions.push(r);
+    }
   }
 
   return sessions;

@@ -18,3 +18,14 @@ export function fmtTokens(n: number): string {
   if (n >= 1_000) return `${fmt(n)} (${fmtHuman(n)})`;
   return fmt(n);
 }
+
+/** 转义 Markdown 表格单元格中的特殊字符 */
+export function escapeMarkdownCell(s: string): string {
+  return s
+    .replace(/\|/g, "\\|")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, " ");
+}

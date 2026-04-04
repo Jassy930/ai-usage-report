@@ -32,7 +32,7 @@ export function processJournalLines(
 
   // 按时间排序，取最早的作为 timestamp
   const sorted = [...lines].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    (a, b) => a.timestamp.localeCompare(b.timestamp),
   );
   if (sorted.length > 0) {
     acc.timestamp = sorted[0]!.timestamp;

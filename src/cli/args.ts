@@ -18,6 +18,7 @@ export interface ParsedArgs {
   out?: string;
   codexDir?: string;
   claudeDir?: string;
+  unknownCommand?: string;
   help: boolean;
 }
 
@@ -36,7 +37,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
   let i = 0;
 
   while (i < argv.length) {
-    const arg = argv[i];
+    const arg = argv[i]!;
 
     if (arg === "--help" || arg === "-h") {
       result.help = true;
@@ -71,7 +72,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
     // 短标志
     if (arg.startsWith("-") && arg.length === 2) {
-      const flag = arg[1];
+      const flag = arg[1]!;
       if (flag === "h") {
         result.help = true;
         i++;
@@ -88,8 +89,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
           m: "model",
           o: "out",
         };
-        if (keyMap[flag]) {
-          setOption(result, keyMap[flag], next);
+        const mapped = keyMap[flag];
+        if (mapped) {
+          setOption(result, mapped, next);
           i += 2;
           continue;
         }
@@ -108,8 +110,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     if (cmd === "report" || cmd === "sessions" || cmd === "projects") {
       result.command = cmd;
     } else {
-      // 未知命令，保持 null 让调用方处理
-      result.command = cmd as SubCommand;
+      result.unknownCommand = cmd;
     }
   }
 

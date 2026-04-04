@@ -115,9 +115,9 @@ describe("buildUsageReport", () => {
       makeSession({ sessionId: "s3", tokenBreakdown: { inputTokens: 25, outputTokens: 25, cacheReadTokens: 0, cacheWriteTokens: 0, total: 50 } }),
     ];
     const report = buildUsageReport(sessions);
-    expect(report.sessions[0].sessionId).toBe("s2");
-    expect(report.sessions[1].sessionId).toBe("s3");
-    expect(report.sessions[2].sessionId).toBe("s1");
+    expect(report.sessions[0]!.sessionId).toBe("s2");
+    expect(report.sessions[1]!.sessionId).toBe("s3");
+    expect(report.sessions[2]!.sessionId).toBe("s1");
   });
 
   test("activeDays 统计不同日期数", () => {

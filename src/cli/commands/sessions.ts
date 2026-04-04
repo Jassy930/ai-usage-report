@@ -3,8 +3,10 @@
  */
 
 import type { ParsedArgs } from "../args";
-import type { ToolType, SessionRecord } from "../../core/types";
+import type { SessionRecord } from "../../core/types";
+import { resolveTools } from "../utils";
 import { collectAllSessions } from "../../core/collect";
+import { fmt, escapeMarkdownCell } from "../../reporters/format";
 
 export async function sessionsCommand(args: ParsedArgs): Promise<string> {
   const tools = resolveTools(args.tool);
@@ -35,12 +37,6 @@ export async function sessionsCommand(args: ParsedArgs): Promise<string> {
   }
 }
 
-function resolveTools(tool: string): ToolType[] | undefined {
-  if (tool === "codex") return ["codex"];
-  if (tool === "claude-code") return ["claude-code"];
-  return undefined;
-}
-
 function renderSessionsTerminal(sessions: SessionRecord[]): string {
   if (sessions.length === 0) return "（无数据）没有匹配的会话记录。";
 
@@ -54,7 +50,7 @@ function renderSessionsTerminal(sessions: SessionRecord[]): string {
     const id = s.sessionId.slice(0, 18).padEnd(20);
     const tool = s.tool.padEnd(14);
     const model = (s.model ?? "unknown").slice(0, 14).padEnd(16);
-    const tokens = s.tokenBreakdown.total.toLocaleString("en-US").padStart(10);
+    const tokens = fmt(s.tokenBreakdown.total).padStart(10);
     const msgs = String(s.messageCount).padStart(6);
     const prompt = s.firstPrompt ? s.firstPrompt.slice(0, 40) : "-";
     lines.push(`${id} ${tool} ${model} ${tokens} ${msgs}  ${prompt}`);
@@ -74,9 +70,9 @@ function renderSessionsMarkdown(sessions: SessionRecord[]): string {
 
   for (const s of sessions) {
     const id = s.sessionId.slice(0, 18);
-    const prompt = s.firstPrompt ? s.firstPrompt.slice(0, 50) : "-";
+    const prompt = s.firstPrompt ? escapeMarkdownCell(s.firstPrompt.slice(0, 50)) : "-";
     lines.push(
-      `| ${id} | ${s.tool} | ${s.model ?? "-"} | ${s.tokenBreakdown.total.toLocaleString("en-US")} | ${s.messageCount} | ${prompt} |`,
+      `| ${escapeMarkdownCell(id)} | ${escapeMarkdownCell(s.tool)} | ${escapeMarkdownCell(s.model ?? "-")} | ${fmt(s.tokenBreakdown.total)} | ${s.messageCount} | ${prompt} |`,
     );
   }
 

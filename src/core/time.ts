@@ -19,8 +19,8 @@ export function parseSinceSpec(spec: string, now?: Date): Date {
     throw new Error(`无效的时间规格: "${spec}"，支持格式: Nd, Nm, Ny`);
   }
 
-  const value = parseInt(match[1], 10);
-  const unit = match[2];
+  const value = parseInt(match[1]!, 10);
+  const unit = match[2]!;
   const ref = now ?? new Date();
 
   const result = new Date(ref);

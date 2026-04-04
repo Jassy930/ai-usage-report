@@ -90,9 +90,9 @@ describe("renderJsonReport", () => {
     const json = renderJsonReport(sampleReport);
     // 2-space indent means second line starts with "  "
     const lines = json.split("\n");
-    expect(lines[1].startsWith("  ")).toBe(true);
+    expect(lines[1]!.startsWith("  ")).toBe(true);
     // Should not be 4-space
-    expect(lines[1].startsWith("    ")).toBe(false);
+    expect(lines[1]!.startsWith("    ")).toBe(false);
   });
 
   test("preserves all report fields", () => {

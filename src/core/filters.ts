@@ -15,6 +15,9 @@ export function filterSessions(
   sessions: SessionRecord[],
   options: FilterOptions,
 ): SessionRecord[] {
+  const projectKeyword = options.project?.toLowerCase();
+  const modelKeyword = options.model?.toLowerCase();
+
   return sessions.filter((s) => {
     if (options.since) {
       const ts = new Date(s.timestamp);
@@ -25,16 +28,14 @@ export function filterSessions(
       if (s.tool !== options.tool) return false;
     }
 
-    if (options.project) {
-      const keyword = options.project.toLowerCase();
+    if (projectKeyword) {
       const path = (s.projectPath ?? "").toLowerCase();
-      if (!path.includes(keyword)) return false;
+      if (!path.includes(projectKeyword)) return false;
     }
 
-    if (options.model) {
-      const keyword = options.model.toLowerCase();
+    if (modelKeyword) {
       const model = (s.model ?? "").toLowerCase();
-      if (!model.includes(keyword)) return false;
+      if (!model.includes(modelKeyword)) return false;
     }
 
     return true;

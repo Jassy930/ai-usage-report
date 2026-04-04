@@ -1,10 +1,18 @@
 {
   "name": "ai-usage-report",
   "version": "0.1.0",
+  "description": "读取本机 Codex 和 Claude Code 历史使用数据并生成使用报告",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
     "ai-usage": "src/cli/main.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
   },
   "scripts": {
     "test": "bun test",
@@ -13,6 +21,6 @@
     "dev": "bun run src/cli/main.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "^1.3.11"
   }
 }

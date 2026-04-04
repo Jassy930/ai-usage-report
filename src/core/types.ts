@@ -11,6 +11,7 @@ export interface TokenBreakdown {
   outputTokens: number;
   cacheReadTokens: number;
   cacheWriteTokens: number;
+  /** 所有 token 类别之和: inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens */
   total: number;
 }
 

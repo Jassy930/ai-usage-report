@@ -38,7 +38,7 @@ describe("collectAllSessions", () => {
       },
     });
     for (let i = 1; i < sessions.length; i++) {
-      expect(sessions[i - 1].timestamp >= sessions[i].timestamp).toBe(true);
+      expect(sessions[i - 1]!.timestamp >= sessions[i]!.timestamp).toBe(true);
     }
   });
 

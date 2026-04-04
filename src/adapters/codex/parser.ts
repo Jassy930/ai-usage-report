@@ -1,7 +1,5 @@
 /** Codex JSONL 解析器 — 适配真实 ~/.codex/ 数据格式 */
 
-import { createReadStream } from "node:fs";
-import { createInterface } from "node:readline";
 import { join } from "node:path";
 import type { SessionRecord, TokenBreakdown } from "../../core/types";
 import type {
@@ -20,8 +18,16 @@ interface ParsedSession {
   tokenBreakdown: TokenBreakdown;
 }
 
+function isSessionMeta(p: unknown): p is CodexSessionMetaPayload {
+  return typeof p === "object" && p !== null && "id" in p && "cwd" in p;
+}
+
+function isTokenCount(p: unknown): p is CodexTokenCountPayload {
+  return typeof p === "object" && p !== null && "type" in p && (p as { type?: string }).type === "token_count" && "info" in p;
+}
+
 /**
- * 流式解析单个 JSONL 会话文件
+ * 解析单个 JSONL 会话文件
  *
  * 真实格式：每行 { timestamp, type, payload }
  * - session_meta → payload.id, payload.cwd, payload.git
@@ -43,15 +49,12 @@ export async function parseSessionFile(
     },
   };
 
-  const rl = createInterface({
-    input: createReadStream(filePath, "utf-8"),
-    crlfDelay: Infinity,
-  });
+  const text = await Bun.file(filePath).text();
 
   // 记录最后一次 token_count 快照（取最终值而非累加）
   let lastTokenUsage: CodexTokenCountPayload["info"] = null;
 
-  for await (const line of rl) {
+  for (const line of text.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
@@ -64,20 +67,18 @@ export async function parseSessionFile(
 
     const { type, payload } = raw;
 
-    if (type === "session_meta") {
-      const meta = payload as unknown as CodexSessionMetaPayload;
-      result.sessionId = meta.id;
-      result.projectPath = meta.cwd;
-      if (meta.git?.remote_url) {
-        result.gitRemote = meta.git.remote_url;
+    if (type === "session_meta" && isSessionMeta(payload)) {
+      result.sessionId = payload.id;
+      result.projectPath = payload.cwd;
+      if (payload.git?.remote_url) {
+        result.gitRemote = payload.git.remote_url;
       }
     } else if (type === "event_msg") {
       const ptype = (payload as { type?: string }).type;
 
-      if (ptype === "token_count") {
-        const tc = payload as unknown as CodexTokenCountPayload;
-        if (tc.info) {
-          lastTokenUsage = tc.info;
+      if (ptype === "token_count" && isTokenCount(payload)) {
+        if (payload.info) {
+          lastTokenUsage = payload.info;
         }
       } else if (ptype === "agent_message" || ptype === "user_message") {
         result.messageCount++;
@@ -91,7 +92,7 @@ export async function parseSessionFile(
     result.tokenBreakdown.inputTokens = u.input_tokens;
     result.tokenBreakdown.outputTokens = u.output_tokens;
     result.tokenBreakdown.cacheReadTokens = u.cached_input_tokens;
-    result.tokenBreakdown.total = u.total_tokens;
+    result.tokenBreakdown.total = u.input_tokens + u.output_tokens + u.cached_input_tokens;
   }
 
   return result;
@@ -108,31 +109,24 @@ export async function loadHistoryPrompts(
   const map = new Map<string, string>();
   const historyPath = join(codexDir, "history.jsonl");
 
-  let rl;
+  let text: string;
   try {
-    rl = createInterface({
-      input: createReadStream(historyPath, "utf-8"),
-      crlfDelay: Infinity,
-    });
+    text = await Bun.file(historyPath).text();
   } catch {
     return map;
   }
 
-  try {
-    for await (const line of rl) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      try {
-        const entry = JSON.parse(trimmed) as CodexHistoryEntry;
-        if (entry.session_id && entry.text) {
-          map.set(entry.session_id, entry.text);
-        }
-      } catch {
-        continue;
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    try {
+      const entry = JSON.parse(trimmed) as CodexHistoryEntry;
+      if (entry.session_id && entry.text) {
+        map.set(entry.session_id, entry.text);
       }
+    } catch {
+      continue;
     }
-  } catch {
-    // 文件不存在或读取失败
   }
 
   return map;

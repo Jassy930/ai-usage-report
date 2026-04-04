@@ -15,11 +15,11 @@ test("collectCodexSessions extracts correct token breakdown", async () => {
     codexDir: "tests/fixtures/codex",
   });
   const s = sessions[0]!;
-  // 最终 token_count 快照: input=350, cached=80, output=140, total=490
+  // 最终 token_count 快照: input=350, cached=80, output=140, total=350+140+80=570
   expect(s.tokenBreakdown.inputTokens).toBe(350);
   expect(s.tokenBreakdown.outputTokens).toBe(140);
   expect(s.tokenBreakdown.cacheReadTokens).toBe(80);
-  expect(s.tokenBreakdown.total).toBe(490);
+  expect(s.tokenBreakdown.total).toBe(570);
 });
 
 test("collectCodexSessions extracts session metadata", async () => {

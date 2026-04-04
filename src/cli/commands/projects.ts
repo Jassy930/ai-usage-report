@@ -3,9 +3,10 @@
  */
 
 import type { ParsedArgs } from "../args";
-import type { ToolType } from "../../core/types";
+import { resolveTools } from "../utils";
 import { collectAllSessions } from "../../core/collect";
 import { buildUsageReport } from "../../core/report";
+import { fmt, escapeMarkdownCell } from "../../reporters/format";
 
 export async function projectsCommand(args: ParsedArgs): Promise<string> {
   const tools = resolveTools(args.tool);
@@ -35,12 +36,6 @@ export async function projectsCommand(args: ParsedArgs): Promise<string> {
   }
 }
 
-function resolveTools(tool: string): ToolType[] | undefined {
-  if (tool === "codex") return ["codex"];
-  if (tool === "claude-code") return ["claude-code"];
-  return undefined;
-}
-
 type ProjectSummary = { project: string; sessions: number; tokens: number; messages: number };
 
 function renderProjectsTerminal(projects: ProjectSummary[]): string {
@@ -55,7 +50,7 @@ function renderProjectsTerminal(projects: ProjectSummary[]): string {
   for (const p of projects) {
     const name = p.project.length > 38 ? `${p.project.slice(0, 37)}…` : p.project;
     lines.push(
-      `${name.padEnd(40)} ${String(p.sessions).padStart(10)} ${p.tokens.toLocaleString("en-US").padStart(12)} ${String(p.messages).padStart(10)}`,
+      `${name.padEnd(40)} ${String(p.sessions).padStart(10)} ${fmt(p.tokens).padStart(12)} ${String(p.messages).padStart(10)}`,
     );
   }
 
@@ -73,7 +68,7 @@ function renderProjectsMarkdown(projects: ProjectSummary[]): string {
 
   for (const p of projects) {
     lines.push(
-      `| ${p.project} | ${p.sessions} | ${p.tokens.toLocaleString("en-US")} | ${p.messages} |`,
+      `| ${escapeMarkdownCell(p.project)} | ${p.sessions} | ${fmt(p.tokens)} | ${p.messages} |`,
     );
   }
 
