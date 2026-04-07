@@ -1,6 +1,6 @@
 /** Claude Code 数据解析与合并 — 适配真实 ~/.claude/ 格式 */
 
-import type { SessionRecord } from "../../core/types";
+import type { RawRef, SessionMessage, SessionRecord, SessionToolCall } from "../../core/types";
 import type {
   FacetEntry,
   SessionMeta,
@@ -18,8 +18,69 @@ function createAccumulator(sessionId: string): SessionAccumulator {
     cacheReadTokens: 0,
     cacheWriteTokens: 0,
     toolUsage: {},
+    messages: [],
+    rawRefs: [],
     hasJsonlData: false,
     hasMetaData: false,
+  };
+}
+
+function makeJsonPointerRef(
+  sessionId: string,
+  filePath: string | undefined,
+  jsonPointer: string,
+): RawRef | null {
+  if (!filePath) return null;
+  return {
+    tool: "claude-code",
+    sourceType: "json",
+    filePath,
+    sessionId,
+    jsonPointer,
+  };
+}
+
+function extractMessageText(content: string | ContentBlock[] | undefined): string | undefined {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return undefined;
+  const texts = content
+    .filter((block) => block.type === "text" && block.text)
+    .map((block) => block.text!.trim())
+    .filter(Boolean);
+  return texts.length > 0 ? texts.join("\n") : undefined;
+}
+
+function extractToolCalls(content: string | ContentBlock[] | undefined): SessionToolCall[] {
+  if (!Array.isArray(content)) return [];
+  return content
+    .filter((block) => block.type === "tool_use" && block.name)
+    .map((block) => ({ name: block.name!, id: block.id }));
+}
+
+function toMessage(line: JournalLine): SessionMessage {
+  return {
+    role: line.type,
+    kind: "message",
+    timestamp: line.timestamp,
+    text: extractMessageText(line.message?.content),
+    toolCalls: extractToolCalls(line.message?.content),
+    usage: line.message?.usage
+      ? {
+          input_tokens: line.message.usage.input_tokens,
+          output_tokens: line.message.usage.output_tokens,
+          cache_read_input_tokens: line.message.usage.cache_read_input_tokens,
+          cache_creation_input_tokens: line.message.usage.cache_creation_input_tokens,
+        }
+      : undefined,
+    rawRefs: line.__source
+      ? [{
+          tool: "claude-code",
+          sourceType: "journal_jsonl",
+          filePath: line.__source.filePath,
+          line: line.__source.line,
+          sessionId: line.sessionId,
+        }]
+      : [],
   };
 }
 
@@ -36,6 +97,7 @@ export function processJournalLines(
   );
   if (sorted.length > 0) {
     acc.timestamp = sorted[0]!.timestamp;
+    acc.timestampEnd = sorted[sorted.length - 1]!.timestamp;
   }
 
   // 取第一条 user 消息作为 firstPrompt（如果 meta 没有提供）
@@ -54,8 +116,18 @@ export function processJournalLines(
     }
   }
 
-  for (const line of lines) {
+  for (const line of sorted) {
     acc.messageCount++;
+    acc.messages.push(toMessage(line));
+    if (line.__source) {
+      acc.rawRefs.push({
+        tool: "claude-code",
+        sourceType: "journal_jsonl",
+        filePath: line.__source.filePath,
+        line: line.__source.line,
+        sessionId: line.sessionId,
+      });
+    }
 
     if (line.type === "assistant" && line.message?.usage) {
       const u = line.message.usage;
@@ -96,10 +168,20 @@ export function applySessionMeta(
   acc: SessionAccumulator,
 ): void {
   acc.hasMetaData = true;
-  if (meta.project_path) acc.projectPath = meta.project_path;
-  if (meta.start_time) acc.timestamp = meta.start_time;
+  if (meta.project_path) {
+    acc.projectPath = meta.project_path;
+    const ref = makeJsonPointerRef(meta.session_id, meta.__source?.filePath, "/project_path");
+    if (ref) acc.rawRefs.push(ref);
+  }
+  if (meta.start_time) {
+    acc.timestamp = meta.start_time;
+    const ref = makeJsonPointerRef(meta.session_id, meta.__source?.filePath, "/start_time");
+    if (ref) acc.rawRefs.push(ref);
+  }
   if (meta.first_prompt && meta.first_prompt !== "No prompt") {
     acc.firstPrompt = meta.first_prompt;
+    const ref = makeJsonPointerRef(meta.session_id, meta.__source?.filePath, "/first_prompt");
+    if (ref) acc.rawRefs.push(ref);
   }
 
   // 如果没有 JSONL 数据，使用 meta 的 token 和消息计数
@@ -121,8 +203,21 @@ export function applyFacets(
   facet: FacetEntry,
   acc: SessionAccumulator,
 ): void {
-  if (facet.brief_summary) acc.summary = facet.brief_summary;
-  if (facet.underlying_goal) acc.goal = facet.underlying_goal;
+  if (facet.brief_summary) {
+    acc.summary = facet.brief_summary;
+    const ref = makeJsonPointerRef(facet.session_id, facet.__source?.filePath, "/brief_summary");
+    if (ref) acc.rawRefs.push(ref);
+  }
+  if (facet.underlying_goal) {
+    acc.goal = facet.underlying_goal;
+    const ref = makeJsonPointerRef(facet.session_id, facet.__source?.filePath, "/underlying_goal");
+    if (ref) acc.rawRefs.push(ref);
+  }
+  if (facet.outcome) {
+    acc.outcome = facet.outcome;
+    const ref = makeJsonPointerRef(facet.session_id, facet.__source?.filePath, "/outcome");
+    if (ref) acc.rawRefs.push(ref);
+  }
 }
 
 /** 将 accumulator 转换为统一 SessionRecord */
@@ -134,12 +229,14 @@ export function toSessionRecord(acc: SessionAccumulator): SessionRecord {
     tool: "claude-code",
     sessionId: acc.sessionId,
     timestamp: acc.timestamp ?? new Date().toISOString(),
+    timestampEnd: acc.timestampEnd,
     projectPath: acc.projectPath,
     model: acc.model,
     messageCount: acc.messageCount,
     firstPrompt: acc.firstPrompt,
     summary: acc.summary,
     goal: acc.goal,
+    outcome: acc.outcome,
     toolUsage:
       Object.keys(acc.toolUsage).length > 0 ? acc.toolUsage : undefined,
     tokenBreakdown: {
@@ -149,6 +246,8 @@ export function toSessionRecord(acc: SessionAccumulator): SessionRecord {
       cacheWriteTokens: acc.cacheWriteTokens,
       total,
     },
+    messages: acc.messages,
+    rawRefs: acc.rawRefs,
   };
 }
 

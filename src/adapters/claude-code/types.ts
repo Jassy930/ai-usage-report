@@ -8,6 +8,9 @@ export interface FacetEntry {
   brief_summary?: string;
   session_type?: string;
   goal_categories?: Record<string, number>;
+  __source?: {
+    filePath: string;
+  };
 }
 
 /** usage-data/session-meta/{id}.json — 核心 session 元数据 */
@@ -24,6 +27,9 @@ export interface SessionMeta {
   first_prompt?: string;
   languages?: Record<string, number>;
   git_commits?: number;
+  __source?: {
+    filePath: string;
+  };
 }
 
 /** JSONL 中 assistant message 的 usage 字段 */
@@ -56,6 +62,10 @@ export interface JournalLine {
     content?: string | ContentBlock[];
     usage?: MessageUsage;
   };
+  __source?: {
+    filePath: string;
+    line: number;
+  };
 }
 
 /** 中间合并数据结构 */
@@ -64,15 +74,19 @@ export interface SessionAccumulator {
   model?: string;
   projectPath?: string;
   timestamp?: string;
+  timestampEnd?: string;
   messageCount: number;
   firstPrompt?: string;
   summary?: string;
   goal?: string;
+  outcome?: string;
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
   cacheWriteTokens: number;
   toolUsage: Record<string, number>;
+  messages: import("../../core/types").SessionMessage[];
+  rawRefs: import("../../core/types").RawRef[];
   hasJsonlData: boolean;
   hasMetaData: boolean;
 }

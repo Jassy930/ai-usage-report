@@ -39,6 +39,18 @@ test("collectCodexSessions extracts session metadata", async () => {
   expect(s.messageCount).toBe(3);
 });
 
+test("collectCodexSessions preserves messages, events and raw refs", async () => {
+  const sessions = await collectCodexSessions({
+    codexDir: "tests/fixtures/codex",
+  });
+  const s = sessions[0]!;
+  expect(s.messages.length).toBeGreaterThanOrEqual(5);
+  expect(s.messages.find((m) => m.role === "user")?.text).toBe("帮我修一下测试");
+  expect(s.messages.find((m) => m.kind === "event" && m.text === "task_complete")).toBeDefined();
+  expect(s.messages[0]?.rawRefs[0]?.filePath).toContain("/tests/fixtures/codex/sessions/");
+  expect(s.rawRefs.some((ref) => ref.filePath.endsWith("/tests/fixtures/codex/history.jsonl"))).toBe(true);
+});
+
 test("collectCodexSessions returns empty for missing directory", async () => {
   const sessions = await collectCodexSessions({
     codexDir: "tests/fixtures/codex-nonexistent",

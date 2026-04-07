@@ -1,11 +1,12 @@
 /** Codex JSONL 解析器 — 适配真实 ~/.codex/ 数据格式 */
 
-import { join } from "node:path";
-import type { SessionRecord, TokenBreakdown } from "../../core/types";
+import { join, resolve } from "node:path";
+import type { RawRef, SessionMessage, SessionRecord, TokenBreakdown } from "../../core/types";
 import type {
   CodexRawEvent,
   CodexSessionMetaPayload,
   CodexTokenCountPayload,
+  CodexMessagePayload,
   CodexHistoryEntry,
 } from "./types";
 
@@ -14,8 +15,13 @@ interface ParsedSession {
   model?: string;
   projectPath?: string;
   gitRemote?: string;
+  timestampStart?: string;
+  timestampEnd?: string;
   messageCount: number;
   tokenBreakdown: TokenBreakdown;
+  messages: SessionMessage[];
+  rawRefs: RawRef[];
+  firstPromptRefs: RawRef[];
 }
 
 function isSessionMeta(p: unknown): p is CodexSessionMetaPayload {
@@ -24,6 +30,25 @@ function isSessionMeta(p: unknown): p is CodexSessionMetaPayload {
 
 function isTokenCount(p: unknown): p is CodexTokenCountPayload {
   return typeof p === "object" && p !== null && "type" in p && (p as { type?: string }).type === "token_count" && "info" in p;
+}
+
+function isMessagePayload(p: unknown): p is CodexMessagePayload {
+  return typeof p === "object" && p !== null && "type" in p && "message" in p;
+}
+
+function toRawRef(
+  sessionId: string,
+  filePath: string,
+  line: number,
+  sourceType: string,
+): RawRef {
+  return {
+    tool: "codex",
+    sourceType,
+    filePath,
+    line,
+    sessionId,
+  };
 }
 
 /**
@@ -47,6 +72,9 @@ export async function parseSessionFile(
       cacheWriteTokens: 0,
       total: 0,
     },
+    messages: [],
+    rawRefs: [],
+    firstPromptRefs: [],
   };
 
   const text = await Bun.file(filePath).text();
@@ -54,24 +82,36 @@ export async function parseSessionFile(
   // 记录最后一次 token_count 快照（取最终值而非累加）
   let lastTokenUsage: CodexTokenCountPayload["info"] = null;
 
-  for (const line of text.split("\n")) {
+  for (const [index, line] of text.split("\n").entries()) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
     let raw: CodexRawEvent;
     try {
-      raw = JSON.parse(trimmed) as CodexRawEvent;
+      raw = {
+        ...(JSON.parse(trimmed) as CodexRawEvent),
+        __source: { filePath, line: index + 1 },
+      };
     } catch {
       continue;
     }
 
     const { type, payload } = raw;
+    if (!result.timestampStart || raw.timestamp < result.timestampStart) {
+      result.timestampStart = raw.timestamp;
+    }
+    if (!result.timestampEnd || raw.timestamp > result.timestampEnd) {
+      result.timestampEnd = raw.timestamp;
+    }
 
     if (type === "session_meta" && isSessionMeta(payload)) {
       result.sessionId = payload.id;
       result.projectPath = payload.cwd;
       if (payload.git?.remote_url) {
         result.gitRemote = payload.git.remote_url;
+      }
+      if (raw.__source) {
+        result.rawRefs.push(toRawRef(payload.id, raw.__source.filePath, raw.__source.line, "session_jsonl"));
       }
     } else if (type === "event_msg") {
       const ptype = (payload as { type?: string }).type;
@@ -80,8 +120,37 @@ export async function parseSessionFile(
         if (payload.info) {
           lastTokenUsage = payload.info;
         }
-      } else if (ptype === "agent_message" || ptype === "user_message") {
+        if (raw.__source && result.sessionId) {
+          result.messages.push({
+            role: "system",
+            kind: "event",
+            timestamp: raw.timestamp,
+            text: "token_count",
+            toolCalls: [],
+            rawRefs: [toRawRef(result.sessionId, raw.__source.filePath, raw.__source.line, "session_jsonl")],
+          });
+        }
+      } else if ((ptype === "agent_message" || ptype === "user_message") && isMessagePayload(payload)) {
         result.messageCount++;
+        if (raw.__source) {
+          result.messages.push({
+            role: ptype === "user_message" ? "user" : "assistant",
+            kind: "message",
+            timestamp: raw.timestamp,
+            text: payload.message,
+            toolCalls: [],
+            rawRefs: [toRawRef(result.sessionId || "unknown", raw.__source.filePath, raw.__source.line, "session_jsonl")],
+          });
+        }
+      } else if (ptype && raw.__source) {
+        result.messages.push({
+          role: "system",
+          kind: "event",
+          timestamp: raw.timestamp,
+          text: ptype,
+          toolCalls: [],
+          rawRefs: [toRawRef(result.sessionId || "unknown", raw.__source.filePath, raw.__source.line, "session_jsonl")],
+        });
       }
     }
   }
@@ -105,9 +174,9 @@ export async function parseSessionFile(
  */
 export async function loadHistoryPrompts(
   codexDir: string,
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  const historyPath = join(codexDir, "history.jsonl");
+): Promise<Map<string, { text: string; refs: RawRef[] }>> {
+  const map = new Map<string, { text: string; refs: RawRef[] }>();
+  const historyPath = resolve(join(codexDir, "history.jsonl"));
 
   let text: string;
   try {
@@ -116,13 +185,28 @@ export async function loadHistoryPrompts(
     return map;
   }
 
-  for (const line of text.split("\n")) {
+  for (const [index, line] of text.split("\n").entries()) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const entry = JSON.parse(trimmed) as CodexHistoryEntry;
+      const entry = {
+        ...(JSON.parse(trimmed) as CodexHistoryEntry),
+        __source: {
+          filePath: historyPath,
+          line: index + 1,
+        },
+      };
       if (entry.session_id && entry.text) {
-        map.set(entry.session_id, entry.text);
+        map.set(entry.session_id, {
+          text: entry.text,
+          refs: [{
+            tool: "codex",
+            sourceType: "history_jsonl",
+            filePath: historyPath,
+            line: index + 1,
+            sessionId: entry.session_id,
+          }],
+        });
       }
     } catch {
       continue;
@@ -138,17 +222,20 @@ export async function loadHistoryPrompts(
 export function toSessionRecord(
   parsed: ParsedSession,
   date: string,
-  firstPrompt?: string,
+  firstPrompt?: { text: string; refs: RawRef[] },
 ): SessionRecord {
   return {
     tool: "codex",
     sessionId: parsed.sessionId,
     timestamp: date,
+    timestampEnd: parsed.timestampEnd,
     projectPath: parsed.projectPath,
     gitRemote: parsed.gitRemote,
     model: parsed.model,
     messageCount: parsed.messageCount,
-    firstPrompt,
+    firstPrompt: firstPrompt?.text,
     tokenBreakdown: parsed.tokenBreakdown,
+    messages: parsed.messages,
+    rawRefs: [...parsed.rawRefs, ...(firstPrompt?.refs ?? []), ...parsed.firstPromptRefs],
   };
 }

@@ -8,7 +8,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { SessionRecord, ToolType, FilterOptions } from "./types";
 import { filterSessions } from "./filters";
-import { parseSinceSpec } from "./time";
+import { parseDateInput, parseSinceSpec } from "./time";
 import { collectCodexSessions } from "../adapters/codex";
 import { collectClaudeCodeSessions } from "../adapters/claude-code";
 
@@ -23,6 +23,8 @@ export interface CollectOptions {
   };
   /** 时间范围规格，如 "7d", "1m", "1y" */
   since?: string;
+  /** 结束日期，支持 YYYY-MM-DD */
+  until?: string;
   /** 项目路径关键字过滤 */
   project?: string;
   /** 模型名称关键字过滤 */
@@ -76,7 +78,12 @@ export async function collectAllSessions(
   const filterOpts: FilterOptions = {};
 
   if (options.since) {
-    filterOpts.since = parseSinceSpec(options.since);
+    filterOpts.since = /^\d{4}-\d{2}-\d{2}$/.test(options.since)
+      ? parseDateInput(options.since)
+      : parseSinceSpec(options.since);
+  }
+  if (options.until) {
+    filterOpts.until = new Date(`${options.until}T23:59:59.999Z`);
   }
   if (options.project) {
     filterOpts.project = options.project;

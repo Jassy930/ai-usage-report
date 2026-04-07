@@ -5,13 +5,14 @@
 import type { ToolType } from "../core/types";
 
 export type FormatType = "terminal" | "json" | "md";
-export type SubCommand = "report" | "sessions" | "projects";
+export type SubCommand = "report" | "sessions" | "projects" | "context";
 
 export interface ParsedArgs {
   command: SubCommand | null;
   tool: ToolType | "all";
   format: FormatType;
   since?: string;
+  until?: string;
   limit?: number;
   project?: string;
   model?: string;
@@ -107,8 +108,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
   // 位置参数: command [tool]
   if (positional.length >= 1) {
     const cmd = positional[0];
-    if (cmd === "report" || cmd === "sessions" || cmd === "projects") {
+    if (cmd === "report" || cmd === "sessions" || cmd === "projects" || cmd === "context") {
       result.command = cmd;
+      if (cmd === "context" && result.format === "terminal") {
+        result.format = "json";
+      }
     } else {
       result.unknownCommand = cmd;
     }
@@ -133,6 +137,9 @@ function setOption(result: ParsedArgs, key: string, value: string): void {
       break;
     case "since":
       result.since = value;
+      break;
+    case "until":
+      result.until = value;
       break;
     case "limit":
       result.limit = parseInt(value, 10) || undefined;

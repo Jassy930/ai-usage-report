@@ -61,4 +61,21 @@ describe("E2E fixture tests", () => {
     expect(result.exitCode).toBe(0);
     expect(result.output.length).toBeGreaterThan(0);
   });
+
+  // ---- context ----
+
+  test("context all default format returns parseable JSON", async () => {
+    const result = await runCli(["context", "all", ...rootArgs()]);
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.output);
+    expect(parsed).toHaveProperty("meta");
+    expect(parsed).toHaveProperty("projects");
+  });
+
+  test("context all --format md contains expected headings", async () => {
+    const result = await runCli(["context", "all", "--format", "md", ...rootArgs()]);
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain("# Context Export");
+    expect(result.output).toContain("## Projects");
+  });
 });

@@ -84,6 +84,8 @@ describe("collectAllSessions", () => {
         cacheWriteTokens: 0,
         total: 0,
       },
+      messages: [],
+      rawRefs: [],
     };
     const later: SessionRecord = {
       tool: "codex",
@@ -97,6 +99,8 @@ describe("collectAllSessions", () => {
         cacheWriteTokens: 0,
         total: 0,
       },
+      messages: [],
+      rawRefs: [],
     };
 
     const sorted = [earlier, later].sort(compareSessionsByTimestampDesc);

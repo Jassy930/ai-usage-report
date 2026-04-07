@@ -10,9 +10,11 @@ import {
   collectCodexSessions,
   collectClaudeCodeSessions,
   buildUsageReport,
+  buildContextReport,
   renderTerminalReport,
   renderMarkdownReport,
   renderJsonReport,
+  renderContextMarkdown,
 } from "ai-usage-report";
 ```
 
@@ -24,7 +26,10 @@ import type {
   TokenBreakdown,
   ToolType,
   FilterOptions,
+  RawRef,
+  SessionMessage,
   UsageReport,
+  ContextReport,
 } from "ai-usage-report";
 ```
 
@@ -38,6 +43,7 @@ import type {
 const sessions = await collectAllSessions({
   tools: ["codex", "claude-code"], // 可选，默认全部
   since: "7d",                     // 可选，时间范围
+  until: "2026-04-07",             // 可选，结束日期
   project: "my-app",               // 可选，项目关键字过滤
   model: "claude",                 // 可选，模型关键字过滤
   roots: {                         // 可选，自定义数据目录
@@ -99,21 +105,57 @@ const json = renderJsonReport(report);
 const md = renderMarkdownReport(report);
 ```
 
+## Context 构建
+
+### buildContextReport
+
+将 `SessionRecord[]` 转换为面向 Agent 的上下文包：
+
+```ts
+const context = buildContextReport(sessions, {
+  generatedAt: new Date().toISOString(),
+  since: "2026-03-31T12:00:00.000Z",
+  until: "2026-04-07T12:00:00.000Z",
+  sources: ["codex", "claude-code"],
+  defaultTimezone: "Asia/Shanghai",
+});
+```
+
+返回的 `ContextReport` 包含：
+
+- `meta` — 导出元数据
+- `projects` — 按项目分组的 session 列表
+- `ungroupedSessions` — 未识别项目路径的会话
+
+### renderContextMarkdown
+
+```ts
+const text = renderContextMarkdown(context);
+```
+
+适合人工快速审阅，不替代 JSON 主输出。
+
 ## 完整示例
 
 ```ts
 import {
   collectAllSessions,
-  buildUsageReport,
-  renderMarkdownReport,
+  buildContextReport,
 } from "ai-usage-report";
 
-async function generateWeeklyReport(): Promise<string> {
+async function generateWeeklyContext(): Promise<string> {
   const sessions = await collectAllSessions({
     since: "7d",
-    tools: ["claude-code"],
+    until: "2026-04-07",
+    tools: ["codex", "claude-code"],
   });
-  const report = buildUsageReport(sessions);
-  return renderMarkdownReport(report);
+  const context = buildContextReport(sessions, {
+    generatedAt: new Date().toISOString(),
+    since: "2026-03-31T12:00:00.000Z",
+    until: "2026-04-07T12:00:00.000Z",
+    sources: ["codex", "claude-code"],
+    defaultTimezone: "Asia/Shanghai",
+  });
+  return JSON.stringify(context, null, 2);
 }
 ```

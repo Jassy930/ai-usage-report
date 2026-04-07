@@ -1,5 +1,9 @@
 import { expect, test, describe } from "bun:test";
-import { parseSinceSpec } from "../../src/core/time";
+import {
+  parseSinceSpec,
+  parseDateInput,
+  resolveTimeWindow,
+} from "../../src/core/time";
 
 const now = new Date("2026-04-03T12:00:00Z");
 
@@ -41,5 +45,33 @@ describe("parseSinceSpec", () => {
     expect(() => parseSinceSpec("abc")).toThrow();
     expect(() => parseSinceSpec("")).toThrow();
     expect(() => parseSinceSpec("7x")).toThrow();
+  });
+});
+
+describe("parseDateInput", () => {
+  test("parses ISO date as UTC start of day", () => {
+    const date = parseDateInput("2026-04-07");
+    expect(date.toISOString()).toBe("2026-04-07T00:00:00.000Z");
+  });
+
+  test("throws on invalid date input", () => {
+    expect(() => parseDateInput("2026/04/07")).toThrow();
+  });
+});
+
+describe("resolveTimeWindow", () => {
+  test("defaults to trailing 7 days when since and until are omitted", () => {
+    const { since, until } = resolveTimeWindow({}, now);
+    expect(since.toISOString()).toBe("2026-03-27T00:00:00.000Z");
+    expect(until.toISOString()).toBe("2026-04-03T12:00:00.000Z");
+  });
+
+  test("resolves explicit since and until dates", () => {
+    const { since, until } = resolveTimeWindow(
+      { since: "2026-04-01", until: "2026-04-07" },
+      now,
+    );
+    expect(since.toISOString()).toBe("2026-04-01T00:00:00.000Z");
+    expect(until.toISOString()).toBe("2026-04-07T23:59:59.999Z");
   });
 });

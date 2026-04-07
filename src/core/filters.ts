@@ -24,6 +24,11 @@ export function filterSessions(
       if (ts < options.since) return false;
     }
 
+    if (options.until) {
+      const ts = new Date(s.timestamp);
+      if (ts > options.until) return false;
+    }
+
     if (options.tool) {
       if (s.tool !== options.tool) return false;
     }

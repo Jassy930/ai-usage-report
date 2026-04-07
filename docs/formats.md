@@ -1,6 +1,6 @@
 # 输出格式说明
 
-CLI 通过 `--format` 参数选择输出格式：`terminal`（默认）、`json`、`md`。
+CLI 通过 `--format` 参数选择输出格式：`terminal`、`json`、`md`。其中 `context` 命令默认 `json`，其他命令默认 `terminal`。
 
 ## Terminal 格式
 
@@ -18,7 +18,7 @@ CLI 通过 `--format` 参数选择输出格式：`terminal`（默认）、`json`
 
 ## JSON 格式
 
-完整结构化 JSON，2-space 缩进。顶层字段：
+对于 `report` 命令，输出完整结构化 JSON，2-space 缩进。顶层字段：
 
 ```json
 {
@@ -82,10 +82,67 @@ CLI 通过 `--format` 参数选择输出格式：`terminal`（默认）、`json`
 | `conclusion` | `string?` | 会话结论 |
 | `toolUsage` | `Record<string, number>?` | 工具调用次数 |
 | `tokenBreakdown` | `TokenBreakdown` | Token 使用明细 |
+| `outcome` | `string?` | Claude facets 中的结果状态 |
+| `messages` | `SessionMessage[]?` | 统一后的消息正文与事件 |
+| `rawRefs` | `RawRef[]?` | 指向原始文件的绝对路径引用 |
+
+## Context JSON 格式
+
+`context` 命令默认输出细粒度 JSON，作为 Agent 的主输入。顶层字段：
+
+```json
+{
+  "meta": {
+    "generatedAt": "2026-04-07T12:00:00.000Z",
+    "since": "2026-03-31T12:00:00.000Z",
+    "until": "2026-04-07T12:00:00.000Z",
+    "sources": ["codex", "claude-code"],
+    "defaultTimezone": "Asia/Shanghai"
+  },
+  "userBrief": null,
+  "projects": [
+    {
+      "projectKey": "/Users/demo/myapp",
+      "projectLabel": "myapp",
+      "sessions": []
+    }
+  ],
+  "ungroupedSessions": []
+}
+```
+
+### Context session 字段
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `tool` | `"codex" \| "claude-code"` | 来源工具 |
+| `sessionId` | `string` | 会话 ID |
+| `timestampStart` | `string` | 会话开始时间 |
+| `timestampEnd` | `string?` | 会话结束时间 |
+| `projectPath` | `string?` | 项目路径 |
+| `model` | `string?` | 模型名称 |
+| `summary` | `string?` | 会话摘要 |
+| `goal` | `string?` | 会话目标 |
+| `outcome` | `string?` | 会话结果状态 |
+| `messageCount` | `number` | 消息数量 |
+| `tokenBreakdown` | `TokenBreakdown` | Token 使用明细 |
+| `messages` | `SessionMessage[]` | 消息正文、工具调用与事件 |
+| `rawRefs` | `RawRef[]` | 指向原始文件的绝对路径引用 |
+
+### RawRef 字段
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `tool` | `ToolType` | 来源工具 |
+| `sourceType` | `string` | 原始来源类型，如 `journal_jsonl` |
+| `filePath` | `string` | 原始文件绝对路径 |
+| `sessionId` | `string` | 会话 ID |
+| `line` | `number?` | JSONL 行号 |
+| `jsonPointer` | `string?` | JSON 字段路径 |
 
 ## Markdown 格式
 
-Markdown 表格，适合嵌入文档、PR 评论或 GitHub Issues。
+对于 `report` 命令，Markdown 表格适合嵌入文档、PR 评论或 GitHub Issues。
 
 包含以下章节：
 - **Summary** — 概览表格（Total Tokens / Sessions / Messages / Active Days）
@@ -96,3 +153,14 @@ Markdown 表格，适合嵌入文档、PR 评论或 GitHub Issues。
 - **Top Sessions** — 前 10 条会话表格（SessionId / Tool / Model / Messages / Tokens / Prompt）
 
 Prompt 超过 50 字符时自动截断。
+
+## Context Markdown 格式
+
+`context --format md` 输出人工审阅版摘要，包含：
+
+- 生成时间、时间范围、来源工具
+- 项目列表
+- 每个项目下的 session 简表
+- 未归组 session 列表
+
+它不是完整证据表达；完整上下文应使用 `context` 的默认 JSON。

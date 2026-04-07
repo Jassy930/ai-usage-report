@@ -8,6 +8,7 @@ import { parseArgs } from "./args";
 import { reportCommand } from "./commands/report";
 import { sessionsCommand } from "./commands/sessions";
 import { projectsCommand } from "./commands/projects";
+import { contextCommand } from "./commands/context";
 
 const HELP_TEXT = `usage: ai-usage-report <command> [tool] [options]
 
@@ -15,13 +16,15 @@ Commands:
   report     生成完整使用报告
   sessions   列出会话记录
   projects   按项目汇总
+  context    导出工作上下文
 
 Tool:
   codex | claude-code | all (默认 all)
 
 Options:
-  --format <terminal|json|md>   输出格式 (默认 terminal)
+  --format <terminal|json|md>   输出格式 (context 默认 json，其余默认 terminal)
   --since <7d|30d|1m|1y>        时间范围过滤
+  --until <YYYY-MM-DD>          结束日期（context）
   --limit <n>                   限制输出条数 (sessions)
   --project <keyword>           项目关键字过滤
   --model <keyword>             模型名称过滤
@@ -79,6 +82,9 @@ export async function runCli(argv: string[]): Promise<CliResult> {
         break;
       case "projects":
         output = await projectsCommand(args);
+        break;
+      case "context":
+        output = await contextCommand(args);
         break;
     }
   } catch (err) {

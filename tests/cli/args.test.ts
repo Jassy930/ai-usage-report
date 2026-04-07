@@ -87,6 +87,28 @@ describe("parseArgs", () => {
     expect(args.format).toBe("md");
   });
 
+  test("context 命令默认输出 json", () => {
+    const args = parseArgs(["context", "all"]);
+    expect(args.command).toBe("context");
+    expect(args.tool).toBe("all");
+    expect(args.format).toBe("json");
+  });
+
+  test("context 支持 until 参数", () => {
+    const args = parseArgs([
+      "context",
+      "claude-code",
+      "--since",
+      "2026-04-01",
+      "--until",
+      "2026-04-07",
+    ]);
+    expect(args.command).toBe("context");
+    expect(args.tool).toBe("claude-code");
+    expect(args.since).toBe("2026-04-01");
+    expect(args.until).toBe("2026-04-07");
+  });
+
   test("无效 format 保持默认", () => {
     const args = parseArgs(["report", "--format", "invalid"]);
     expect(args.format).toBe("terminal");

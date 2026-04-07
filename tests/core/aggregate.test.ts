@@ -14,6 +14,8 @@ const makeSession = (overrides: Partial<SessionRecord> = {}): SessionRecord => (
     cacheWriteTokens: 0,
     total: 15,
   },
+  messages: [],
+  rawRefs: [],
   ...overrides,
 });
 

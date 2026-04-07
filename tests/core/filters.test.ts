@@ -15,6 +15,8 @@ function makeSession(overrides: Partial<SessionRecord> = {}): SessionRecord {
       cacheWriteTokens: 0,
       total: 300,
     },
+    messages: [],
+    rawRefs: [],
     ...overrides,
   };
 }

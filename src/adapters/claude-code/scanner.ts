@@ -2,7 +2,7 @@
 
 import { Glob } from "bun";
 import { readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type { FacetEntry, SessionMeta, JournalLine } from "./types";
 
 const BATCH_SIZE = 64;
@@ -25,12 +25,13 @@ export async function scanFacets(claudeDir: string): Promise<FacetEntry[]> {
     const results = await Promise.all(
       batch.map(async (file) => {
         try {
-          const content = await Bun.file(join(facetsDir, file)).json();
+          const filePath = resolve(join(facetsDir, file));
+          const content = await Bun.file(filePath).json();
           if (content && typeof content === "object" && !Array.isArray(content)) {
             const entry = content as Record<string, unknown>;
             const sessionId =
               (entry.session_id as string) ?? file.replace(".json", "");
-            return { ...entry, session_id: sessionId } as FacetEntry;
+            return { ...entry, session_id: sessionId, __source: { filePath } } as FacetEntry;
           }
         } catch {
           // 跳过无效文件
@@ -66,9 +67,13 @@ export async function scanSessionMeta(
     const results = await Promise.all(
       batch.map(async (file) => {
         try {
-          const content = await Bun.file(join(metaDir, file)).json();
+          const filePath = resolve(join(metaDir, file));
+          const content = await Bun.file(filePath).json();
           if (content && typeof content === "object") {
-            return content as SessionMeta;
+            return {
+              ...(content as SessionMeta),
+              __source: { filePath },
+            } as SessionMeta;
           }
         } catch {
           // 跳过无效文件
@@ -109,14 +114,20 @@ export async function scanJournals(
         const lines: JournalLine[] = [];
         try {
           const text = await Bun.file(filePath).text();
-          for (const line of text.split("\n")) {
+          for (const [index, line] of text.split("\n").entries()) {
             const trimmed = line.trim();
             if (!trimmed) continue;
             try {
               const parsed = JSON.parse(trimmed) as JournalLine;
               if (!parsed.sessionId) continue;
               if (parsed.type !== "user" && parsed.type !== "assistant") continue;
-              lines.push(parsed);
+              lines.push({
+                ...parsed,
+                __source: {
+                  filePath,
+                  line: index + 1,
+                },
+              });
             } catch {
               // 跳过无效行
             }

@@ -44,6 +44,8 @@ const sampleReport: UsageReport = {
         cacheWriteTokens: 30000,
         total: 830000,
       },
+      messages: [],
+      rawRefs: [],
     },
     {
       tool: "claude-code",
@@ -60,6 +62,8 @@ const sampleReport: UsageReport = {
         cacheWriteTokens: 20000,
         total: 370000,
       },
+      messages: [],
+      rawRefs: [],
     },
     {
       tool: "codex",
@@ -75,6 +79,8 @@ const sampleReport: UsageReport = {
         cacheWriteTokens: 0,
         total: 300000,
       },
+      messages: [],
+      rawRefs: [],
     },
   ],
 };

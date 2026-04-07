@@ -5,6 +5,10 @@ export interface CodexRawEvent {
   timestamp: string;
   type: string;
   payload: Record<string, unknown>;
+  __source?: {
+    filePath: string;
+    line: number;
+  };
 }
 
 /** session_meta payload */
@@ -43,4 +47,8 @@ export interface CodexHistoryEntry {
   session_id: string;
   ts: number;
   text: string;
+  __source?: {
+    filePath: string;
+    line: number;
+  };
 }

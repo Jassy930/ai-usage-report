@@ -1,6 +1,6 @@
 # AI Usage Report
 
-读取本机 **Codex** 与 **Claude Code** 的历史使用数据，生成终端、JSON、Markdown 格式的使用报告。
+读取本机 **Codex** 与 **Claude Code** 的历史使用数据，生成统计报告，或导出面向 Agent 的工作上下文资料包。
 
 ## 快速开始
 
@@ -15,6 +15,9 @@ bun install
 
 # 查看最近 7 天的使用报告
 bun run src/cli/main.ts report all --since 7d
+
+# 导出最近 7 天的工作上下文 JSON
+bun run src/cli/main.ts context all
 ```
 
 输出效果：
@@ -63,6 +66,7 @@ bun run src/cli/main.ts <command> [tool] [options]
 | `report` | 全局汇总报告（概览 + 工具/项目/模型维度 + Top Sessions） |
 | `sessions` | 会话明细列表 |
 | `projects` | 按项目维度汇总 |
+| `context` | 导出细粒度工作上下文，适合作为 Agent 输入 |
 
 ### 工具选择
 
@@ -72,8 +76,9 @@ bun run src/cli/main.ts <command> [tool] [options]
 
 | 选项 | 缩写 | 说明 | 默认值 |
 | --- | --- | --- | --- |
-| `--format` | `-f` | `terminal` / `json` / `md` | `terminal` |
+| `--format` | `-f` | `terminal` / `json` / `md` | `context` 默认 `json`，其余默认 `terminal` |
 | `--since` | `-s` | `7d` / `30d` / `1m` / `1y` | 无限制 |
+| `--until` | - | `YYYY-MM-DD` 结束日期 | 当前时间 |
 | `--limit` | `-l` | 最大返回条数 | 无限制 |
 | `--project` | `-p` | 按项目路径关键字过滤 | - |
 | `--model` | `-m` | 按模型名称关键字过滤 | - |
@@ -100,6 +105,12 @@ bun run src/cli/main.ts projects all
 
 # 只看 opus 模型的使用
 bun run src/cli/main.ts report all --model opus --since 7d
+
+# 导出最近 7 天的工作上下文（默认 JSON）
+bun run src/cli/main.ts context all
+
+# 导出指定时间范围的上下文 Markdown
+bun run src/cli/main.ts context all --since 2026-04-01 --until 2026-04-07 --format md
 ```
 
 ## 作为库使用
@@ -108,6 +119,7 @@ bun run src/cli/main.ts report all --model opus --since 7d
 import {
   collectAllSessions,
   buildUsageReport,
+  buildContextReport,
   renderTerminalReport,
   renderMarkdownReport,
   renderJsonReport,
@@ -119,6 +131,16 @@ const report = buildUsageReport(sessions);
 console.log(renderTerminalReport(report));   // 终端输出
 console.log(renderMarkdownReport(report));   // Markdown
 console.log(renderJsonReport(report));       // JSON
+
+const context = buildContextReport(sessions, {
+  generatedAt: new Date().toISOString(),
+  since: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
+  until: new Date().toISOString(),
+  sources: ["codex", "claude-code"],
+  defaultTimezone: "Asia/Shanghai",
+});
+
+console.log(JSON.stringify(context, null, 2)); // Agent 上下文
 ```
 
 详见 [嵌入说明](./docs/embedding.md)。
@@ -128,6 +150,8 @@ console.log(renderJsonReport(report));       // JSON
 - **terminal** — 对齐的纯文本表格，适合终端和 CI 日志
 - **json** — 完整结构化 JSON，适合程序消费
 - **md** — Markdown 表格，适合文档和周报
+- **context json** — 细粒度工作上下文，适合作为 Agent 输入
+- **context md** — 人工审阅版上下文摘要
 
 详见 [输出格式说明](./docs/formats.md)。
 
@@ -148,5 +172,7 @@ bun run check
 
 - [设计文档](./docs/plans/2026-04-03-ai-usage-report-design.md)
 - [实施计划](./docs/plans/2026-04-03-ai-usage-report.md)
+- [Context 导出设计](./docs/plans/2026-04-07-context-export-design.md)
+- [Context 导出实施计划](./docs/plans/2026-04-07-context-export.md)
 - [嵌入说明](./docs/embedding.md)
 - [输出格式](./docs/formats.md)
