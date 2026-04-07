@@ -2,7 +2,8 @@
  * CLI 入口 — 解析参数，分发子命令，输出结果
  */
 
-import { resolve, relative } from "node:path";
+import { realpath } from "node:fs/promises";
+import { basename, dirname, relative, resolve } from "node:path";
 import { parseArgs } from "./args";
 import { reportCommand } from "./commands/report";
 import { sessionsCommand } from "./commands/sessions";
@@ -33,6 +34,23 @@ Options:
 export interface CliResult {
   exitCode: number;
   output: string;
+}
+
+async function isOutputPathWithinCwd(outPath: string): Promise<boolean> {
+  const absPath = resolve(outPath);
+  const cwdRealPath = await realpath(process.cwd());
+  let finalPath: string;
+
+  try {
+    // 目标已存在时必须跟随最终符号链接，避免写入仓库外。
+    finalPath = await realpath(absPath);
+  } catch {
+    const parentRealPath = await realpath(dirname(absPath));
+    finalPath = resolve(parentRealPath, basename(absPath));
+  }
+  const rel = relative(cwdRealPath, finalPath);
+
+  return rel === "" || (!rel.startsWith("..") && !rel.startsWith("../"));
 }
 
 /**
@@ -70,12 +88,10 @@ export async function runCli(argv: string[]): Promise<CliResult> {
 
   // 输出到文件或返回
   if (args.out) {
-    const absPath = resolve(args.out);
-    const rel = relative(process.cwd(), absPath);
-    if (rel.startsWith("..") || resolve(rel) !== absPath) {
+    if (!(await isOutputPathWithinCwd(args.out))) {
       return { exitCode: 1, output: `错误: 输出路径不允许指向工作目录之外: ${args.out}` };
     }
-    await Bun.write(absPath, output);
+    await Bun.write(resolve(args.out), output);
     return { exitCode: 0, output: `已写入: ${args.out}` };
   }
 

@@ -54,25 +54,29 @@ ai-usage report --out ../../.ssh/authorized_keys
 
 ### 修复建议
 
+需要基于真实文件系统路径校验，而不是仅比较词法路径。否则工作目录内的符号链接仍可把写入重定向到仓库外。
+
 ```typescript
-import { resolve, relative } from "node:path";
+import { realpath } from "node:fs/promises";
+import { basename, dirname, relative, resolve } from "node:path";
 
-function validateOutputPath(outPath: string): string {
+async function validateOutputPath(outPath: string): Promise<string> {
   const resolved = resolve(outPath);
-  const cwd = process.cwd();
-  const rel = relative(cwd, resolved);
+  const cwd = await realpath(process.cwd());
+  let finalPath: string;
 
-  // 禁止写入当前工作目录之外
-  if (rel.startsWith("..") || resolve(rel) !== resolved) {
+  try {
+    finalPath = await realpath(resolved);
+  } catch {
+    const parent = await realpath(dirname(resolved));
+    finalPath = resolve(parent, basename(resolved));
+  }
+
+  const rel = relative(cwd, finalPath);
+  if (rel.startsWith("..")) {
     throw new Error(
       `不安全的输出路径: "${outPath}"。输出文件必须在当前工作目录内。`,
     );
-  }
-
-  // 禁止覆盖隐藏文件和系统配置
-  const basename = resolved.split("/").pop() ?? "";
-  if (basename.startsWith(".")) {
-    throw new Error(`不允许写入隐藏文件: "${basename}"`);
   }
 
   return resolved;

@@ -1,6 +1,8 @@
 import { expect, test, describe } from "bun:test";
 import { runCli } from "../../src/cli/main";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
 
 const FIXTURES = join(import.meta.dir, "../fixtures");
 const ROOTS = `--codex-dir=${join(FIXTURES, "codex")} --claude-dir=${join(FIXTURES, "claude-code")}`;
@@ -80,6 +82,34 @@ describe("report command", () => {
     await Bun.write(tmpFile, ""); // will be cleaned by OS or next run
     const { unlinkSync } = await import("node:fs");
     try { unlinkSync(tmpFile); } catch {}
+  });
+
+  test("report with --out rejects paths that escape cwd through symlink", async () => {
+    const repoTmpDir = mkdtempSync(join(import.meta.dir, "../.tmp-out-link-"));
+    const externalDir = mkdtempSync(join(tmpdir(), "ai-usage-report-out-"));
+    const linkPath = join(repoTmpDir, "outlink");
+    const outPath = join(linkPath, "report.json");
+
+    try {
+      symlinkSync(externalDir, linkPath, "dir");
+
+      const result = await runCli([
+        "report",
+        "all",
+        "--format",
+        "json",
+        "--out",
+        outPath,
+        ...rootArgs(),
+      ]);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toContain("工作目录之外");
+      expect(await Bun.file(join(externalDir, "report.json")).exists()).toBe(false);
+    } finally {
+      rmSync(repoTmpDir, { recursive: true, force: true });
+      rmSync(externalDir, { recursive: true, force: true });
+    }
   });
 
   test("unknown command returns exit 1", async () => {

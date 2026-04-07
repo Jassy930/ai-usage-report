@@ -31,6 +31,20 @@ export interface CollectOptions {
 
 const ALL_TOOLS: ToolType[] = ["codex", "claude-code"];
 
+export function compareSessionsByTimestampDesc(
+  a: Pick<SessionRecord, "timestamp">,
+  b: Pick<SessionRecord, "timestamp">,
+): number {
+  const aTime = Date.parse(a.timestamp);
+  const bTime = Date.parse(b.timestamp);
+
+  if (Number.isNaN(aTime) || Number.isNaN(bTime)) {
+    return b.timestamp.localeCompare(a.timestamp);
+  }
+
+  return bTime - aTime;
+}
+
 /**
  * 统一采集所有会话，支持工具选择与过滤
  *
@@ -74,7 +88,7 @@ export async function collectAllSessions(
   sessions = filterSessions(sessions, filterOpts);
 
   // 按时间降序排序
-  sessions.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  sessions.sort(compareSessionsByTimestampDesc);
 
   return sessions;
 }

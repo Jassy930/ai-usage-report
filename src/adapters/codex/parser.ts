@@ -92,7 +92,7 @@ export async function parseSessionFile(
     result.tokenBreakdown.inputTokens = u.input_tokens;
     result.tokenBreakdown.outputTokens = u.output_tokens;
     result.tokenBreakdown.cacheReadTokens = u.cached_input_tokens;
-    result.tokenBreakdown.total = u.input_tokens + u.output_tokens + u.cached_input_tokens;
+    result.tokenBreakdown.total = u.total_tokens;
   }
 
   return result;

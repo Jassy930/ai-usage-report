@@ -1,5 +1,9 @@
 import { expect, test, describe } from "bun:test";
-import { collectAllSessions } from "../../src/core/collect";
+import type { SessionRecord } from "../../src/core/types";
+import {
+  collectAllSessions,
+  compareSessionsByTimestampDesc,
+} from "../../src/core/collect";
 
 describe("collectAllSessions", () => {
   test("respects tool filter — codex only", async () => {
@@ -65,5 +69,37 @@ describe("collectAllSessions", () => {
     for (const s of sessions) {
       expect(s.projectPath?.toLowerCase()).toContain("demo");
     }
+  });
+
+  test("compareSessionsByTimestampDesc sorts ISO timestamps by actual time", () => {
+    const earlier: SessionRecord = {
+      tool: "codex",
+      sessionId: "earlier",
+      timestamp: "2026-04-03T10:00:00+08:00",
+      messageCount: 0,
+      tokenBreakdown: {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        total: 0,
+      },
+    };
+    const later: SessionRecord = {
+      tool: "codex",
+      sessionId: "later",
+      timestamp: "2026-04-03T03:00:00Z",
+      messageCount: 0,
+      tokenBreakdown: {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        total: 0,
+      },
+    };
+
+    const sorted = [earlier, later].sort(compareSessionsByTimestampDesc);
+    expect(sorted.map((session) => session.sessionId)).toEqual(["later", "earlier"]);
   });
 });

@@ -77,9 +77,11 @@ bun run src/cli/main.ts <command> [tool] [options]
 | `--limit` | `-l` | 最大返回条数 | 无限制 |
 | `--project` | `-p` | 按项目路径关键字过滤 | - |
 | `--model` | `-m` | 按模型名称关键字过滤 | - |
-| `--out` | `-o` | 输出到文件 | stdout |
+| `--out` | `-o` | 输出到文件，仅允许写入当前工作目录内的真实路径 | stdout |
 | `--codex-dir` | - | 自定义 Codex 数据目录 | `~/.codex` |
 | `--claude-dir` | - | 自定义 Claude 数据目录 | `~/.claude` |
+
+`--out` 会校验目标文件的真实路径；如果路径通过符号链接跳出当前工作目录，会被拒绝。
 
 ### 常用示例
 
