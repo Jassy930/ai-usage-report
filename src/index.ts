@@ -7,6 +7,8 @@ export { collectCodexSessions } from "./adapters/codex";
 export { collectClaudeCodeSessions } from "./adapters/claude-code";
 export { buildUsageReport } from "./core/report";
 export type { UsageReport } from "./core/report";
+export { searchSessions } from "./core/search";
+export type { SearchReport, SearchMatch, SessionSearchResult, SearchOptions } from "./core/search";
 export type {
   RawRef,
   SessionRecord,

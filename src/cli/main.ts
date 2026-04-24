@@ -9,6 +9,7 @@ import { reportCommand } from "./commands/report";
 import { sessionsCommand } from "./commands/sessions";
 import { projectsCommand } from "./commands/projects";
 import { contextCommand } from "./commands/context";
+import { searchCommand } from "./commands/search";
 
 const HELP_TEXT = `usage: ai-usage-report <command> [tool] [options]
 
@@ -17,6 +18,7 @@ Commands:
   sessions   列出会话记录
   projects   按项目汇总
   context    导出工作上下文
+  search     在会话消息中搜索关键字
 
 Tool:
   codex | claude-code | all (默认 all)
@@ -28,6 +30,9 @@ Options:
   --limit <n>                   限制输出条数 (sessions)
   --project <keyword>           项目关键字过滤
   --model <keyword>             模型名称过滤
+  --query <keyword>             搜索关键字 (search)
+  --case-sensitive              区分大小写 (search)
+  --role <user|assistant|all>   搜索角色范围 (search，默认 all)
   --out <file>                  输出到文件
   --codex-dir <path>            Codex 数据目录
   --claude-dir <path>           Claude Code 数据目录
@@ -85,6 +90,9 @@ export async function runCli(argv: string[]): Promise<CliResult> {
         break;
       case "context":
         output = await contextCommand(args);
+        break;
+      case "search":
+        output = await searchCommand(args);
         break;
     }
   } catch (err) {

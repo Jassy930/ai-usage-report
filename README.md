@@ -67,6 +67,7 @@ bun run src/cli/main.ts <command> [tool] [options]
 | `sessions` | 会话明细列表 |
 | `projects` | 按项目维度汇总 |
 | `context` | 导出细粒度工作上下文，适合作为 Agent 输入 |
+| `search` | 在会话消息中搜索关键字并统计出现次数 |
 
 ### 工具选择
 
@@ -82,6 +83,9 @@ bun run src/cli/main.ts <command> [tool] [options]
 | `--limit` | `-l` | 最大返回条数 | 无限制 |
 | `--project` | `-p` | 按项目路径关键字过滤 | - |
 | `--model` | `-m` | 按模型名称关键字过滤 | - |
+| `--query` | `-q` | 搜索关键字（search 命令） | - |
+| `--case-sensitive` | - | 区分大小写（search 命令） | 否 |
+| `--role` | - | 搜索角色范围 `user`/`assistant`/`all`（search 命令） | `all` |
 | `--out` | `-o` | 输出到文件，仅允许写入当前工作目录内的真实路径 | stdout |
 | `--codex-dir` | - | 自定义 Codex 数据目录 | `~/.codex` |
 | `--claude-dir` | - | 自定义 Claude 数据目录 | `~/.claude` |
@@ -111,6 +115,15 @@ bun run src/cli/main.ts context all
 
 # 导出指定时间范围的上下文 Markdown
 bun run src/cli/main.ts context all --since 2026-04-01 --until 2026-04-07 --format md
+
+# 搜索会话中包含"登录"的内容
+bun run src/cli/main.ts search all --query "登录" --since 7d
+
+# 仅搜索用户消息中的关键字（区分大小写）
+bun run src/cli/main.ts search all --query "TODO" --role user --case-sensitive
+
+# 搜索结果导出为 JSON
+bun run src/cli/main.ts search all --query "bug" --format json --since 30d
 ```
 
 ## 作为库使用

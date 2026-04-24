@@ -5,7 +5,7 @@
 import type { ToolType } from "../core/types";
 
 export type FormatType = "terminal" | "json" | "md";
-export type SubCommand = "report" | "sessions" | "projects" | "context";
+export type SubCommand = "report" | "sessions" | "projects" | "context" | "search";
 
 export interface ParsedArgs {
   command: SubCommand | null;
@@ -19,6 +19,9 @@ export interface ParsedArgs {
   out?: string;
   codexDir?: string;
   claudeDir?: string;
+  query?: string;
+  caseSensitive?: boolean;
+  role?: string;
   unknownCommand?: string;
   help: boolean;
 }
@@ -89,6 +92,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
           p: "project",
           m: "model",
           o: "out",
+          q: "query",
         };
         const mapped = keyMap[flag];
         if (mapped) {
@@ -108,7 +112,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
   // 位置参数: command [tool]
   if (positional.length >= 1) {
     const cmd = positional[0];
-    if (cmd === "report" || cmd === "sessions" || cmd === "projects" || cmd === "context") {
+    if (cmd === "report" || cmd === "sessions" || cmd === "projects" || cmd === "context" || cmd === "search") {
       result.command = cmd;
       if (cmd === "context" && result.format === "terminal") {
         result.format = "json";
@@ -158,6 +162,17 @@ function setOption(result: ParsedArgs, key: string, value: string): void {
       break;
     case "claude-dir":
       result.claudeDir = value;
+      break;
+    case "query":
+      result.query = value;
+      break;
+    case "case-sensitive":
+      result.caseSensitive = value !== "false";
+      break;
+    case "role":
+      if (value === "user" || value === "assistant" || value === "all") {
+        result.role = value;
+      }
       break;
   }
 }
