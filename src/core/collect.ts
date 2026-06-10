@@ -8,7 +8,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { SessionRecord, ToolType, FilterOptions } from "./types";
 import { filterSessions } from "./filters";
-import { parseDateInput, parseSinceSpec } from "./time";
+import { parseDateInput, parseDateEndInput, parseSinceSpec } from "./time";
 import { collectCodexSessions } from "../adapters/codex";
 import { collectClaudeCodeSessions } from "../adapters/claude-code";
 
@@ -83,7 +83,7 @@ export async function collectAllSessions(
       : parseSinceSpec(options.since);
   }
   if (options.until) {
-    filterOpts.until = new Date(`${options.until}T23:59:59.999Z`);
+    filterOpts.until = parseDateEndInput(options.until);
   }
   if (options.project) {
     filterOpts.project = options.project;

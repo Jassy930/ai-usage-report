@@ -6,6 +6,7 @@ import type {
   CodexRawEvent,
   CodexSessionMetaPayload,
   CodexTokenCountPayload,
+  CodexTokenUsage,
   CodexMessagePayload,
   CodexHistoryEntry,
 } from "./types";
@@ -52,11 +53,32 @@ function toRawRef(
 }
 
 /**
+ * 将 Codex usage 快照规范化为 TokenBreakdown 字段
+ *
+ * Codex 的 input_tokens 包含 cached_input_tokens，这里拆出非缓存部分，
+ * 使 inputTokens / cacheReadTokens 与 claude-code 适配器口径一致，
+ * 满足 total = input + output + cacheRead + cacheWrite。
+ */
+function normalizeUsage(u: CodexTokenUsage): {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+} {
+  const cached = u.cached_input_tokens ?? 0;
+  return {
+    inputTokens: Math.max(0, (u.input_tokens ?? 0) - cached),
+    outputTokens: u.output_tokens ?? 0,
+    cacheReadTokens: cached,
+  };
+}
+
+/**
  * 解析单个 JSONL 会话文件
  *
  * 真实格式：每行 { timestamp, type, payload }
  * - session_meta → payload.id, payload.cwd, payload.git
- * - event_msg + payload.type=token_count → payload.info.total_token_usage
+ * - event_msg + payload.type=token_count → 逐条累加 last_token_usage（按请求实际发生时间归属）；
+ *   旧格式无 last_token_usage 时回退到最终 total_token_usage 快照
  * - event_msg + payload.type=agent_message/user_message → 消息计数
  */
 export async function parseSessionFile(
@@ -79,8 +101,10 @@ export async function parseSessionFile(
 
   const text = await Bun.file(filePath).text();
 
-  // 记录最后一次 token_count 快照（取最终值而非累加）
+  // 旧格式回退用：最后一次 token_count 快照
   let lastTokenUsage: CodexTokenCountPayload["info"] = null;
+  // 是否已通过 last_token_usage 逐条累加
+  let accumulated = false;
 
   for (const [index, line] of text.split("\n").entries()) {
     const trimmed = line.trim();
@@ -117,17 +141,36 @@ export async function parseSessionFile(
       const ptype = (payload as { type?: string }).type;
 
       if (ptype === "token_count" && isTokenCount(payload)) {
+        let last: CodexTokenUsage | undefined;
         if (payload.info) {
           lastTokenUsage = payload.info;
+          last = payload.info.last_token_usage;
+          if (last) {
+            accumulated = true;
+            const n = normalizeUsage(last);
+            result.tokenBreakdown.inputTokens += n.inputTokens;
+            result.tokenBreakdown.outputTokens += n.outputTokens;
+            result.tokenBreakdown.cacheReadTokens += n.cacheReadTokens;
+            result.tokenBreakdown.total += last.total_tokens ?? 0;
+          }
         }
-        if (raw.__source && result.sessionId) {
+        if (raw.__source) {
+          const n = last ? normalizeUsage(last) : undefined;
           result.messages.push({
             role: "system",
             kind: "event",
             timestamp: raw.timestamp,
             text: "token_count",
             toolCalls: [],
-            rawRefs: [toRawRef(result.sessionId, raw.__source.filePath, raw.__source.line, "session_jsonl")],
+            usage: n
+              ? {
+                  input_tokens: n.inputTokens,
+                  output_tokens: n.outputTokens,
+                  cache_read_input_tokens: n.cacheReadTokens,
+                  cache_creation_input_tokens: 0,
+                }
+              : undefined,
+            rawRefs: [toRawRef(result.sessionId || "unknown", raw.__source.filePath, raw.__source.line, "session_jsonl")],
           });
         }
       } else if ((ptype === "agent_message" || ptype === "user_message") && isMessagePayload(payload)) {
@@ -155,12 +198,13 @@ export async function parseSessionFile(
     }
   }
 
-  // 使用最终 token 快照
-  if (lastTokenUsage) {
+  // 旧格式（无 last_token_usage）回退到最终累计快照
+  if (!accumulated && lastTokenUsage) {
     const u = lastTokenUsage.total_token_usage;
-    result.tokenBreakdown.inputTokens = u.input_tokens;
-    result.tokenBreakdown.outputTokens = u.output_tokens;
-    result.tokenBreakdown.cacheReadTokens = u.cached_input_tokens;
+    const n = normalizeUsage(u);
+    result.tokenBreakdown.inputTokens = n.inputTokens;
+    result.tokenBreakdown.outputTokens = n.outputTokens;
+    result.tokenBreakdown.cacheReadTokens = n.cacheReadTokens;
     result.tokenBreakdown.total = u.total_tokens;
   }
 

@@ -103,3 +103,114 @@ describe("filterSessions", () => {
     expect(result).toHaveLength(2);
   });
 });
+
+describe("filterSessions — 按请求实际发生时间裁剪跨天会话", () => {
+  // 一个 06-08 启动、跨到 06-09 的会话：两天各有一条带 usage 的请求
+  const crossDay = makeSession({
+    sessionId: "cross-day",
+    tool: "codex",
+    timestamp: "2026-06-08T12:00:00Z",
+    timestampEnd: "2026-06-09T08:00:00Z",
+    messageCount: 2,
+    tokenBreakdown: {
+      inputTokens: 140,
+      outputTokens: 40,
+      cacheReadTokens: 160,
+      cacheWriteTokens: 0,
+      total: 340,
+    },
+    messages: [
+      {
+        role: "user",
+        kind: "message",
+        timestamp: "2026-06-08T12:00:00Z",
+        text: "day1 prompt",
+        toolCalls: [],
+        rawRefs: [],
+      },
+      {
+        role: "system",
+        kind: "event",
+        timestamp: "2026-06-08T12:01:00Z",
+        text: "token_count",
+        toolCalls: [],
+        usage: { input_tokens: 60, output_tokens: 10, cache_read_input_tokens: 40, cache_creation_input_tokens: 0 },
+        rawRefs: [],
+      },
+      {
+        role: "user",
+        kind: "message",
+        timestamp: "2026-06-09T07:59:00Z",
+        text: "day2 prompt",
+        toolCalls: [],
+        rawRefs: [],
+      },
+      {
+        role: "system",
+        kind: "event",
+        timestamp: "2026-06-09T08:00:00Z",
+        text: "token_count",
+        toolCalls: [],
+        usage: { input_tokens: 80, output_tokens: 30, cache_read_input_tokens: 120, cache_creation_input_tokens: 0 },
+        rawRefs: [],
+      },
+    ],
+  });
+
+  const day2 = {
+    since: new Date("2026-06-09T00:00:00Z"),
+    until: new Date("2026-06-09T23:59:59.999Z"),
+  };
+  const day1 = {
+    since: new Date("2026-06-08T00:00:00Z"),
+    until: new Date("2026-06-08T23:59:59.999Z"),
+  };
+
+  test("只查第二天时包含跨天会话，且只计入当天的用量", () => {
+    const result = filterSessions([crossDay], day2);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.tokenBreakdown).toEqual({
+      inputTokens: 80,
+      outputTokens: 30,
+      cacheReadTokens: 120,
+      cacheWriteTokens: 0,
+      total: 230,
+    });
+    expect(result[0]!.messageCount).toBe(1);
+  });
+
+  test("只查第一天时计入第一天的用量", () => {
+    const result = filterSessions([crossDay], day1);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.tokenBreakdown.total).toBe(110);
+    expect(result[0]!.messageCount).toBe(1);
+  });
+
+  test("窗口覆盖全程时保留原始记录不裁剪", () => {
+    const result = filterSessions([crossDay], {
+      since: new Date("2026-06-08T00:00:00Z"),
+      until: new Date("2026-06-09T23:59:59.999Z"),
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]!.tokenBreakdown.total).toBe(340);
+    expect(result[0]!.messageCount).toBe(2);
+    expect(result[0]).toBe(crossDay);
+  });
+
+  test("窗口外的会话被排除", () => {
+    const result = filterSessions([crossDay], {
+      since: new Date("2026-06-10T00:00:00Z"),
+      until: new Date("2026-06-10T23:59:59.999Z"),
+    });
+    expect(result).toHaveLength(0);
+  });
+
+  test("无 usage 数据的会话回退为按开始时间取舍", () => {
+    const noUsage = makeSession({
+      sessionId: "no-usage",
+      timestamp: "2026-06-08T12:00:00Z",
+    });
+    expect(filterSessions([noUsage], day1)).toHaveLength(1);
+    expect(filterSessions([noUsage], day2)).toHaveLength(0);
+  });
+});

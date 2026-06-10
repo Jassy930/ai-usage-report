@@ -2,6 +2,7 @@ import { expect, test, describe } from "bun:test";
 import {
   parseSinceSpec,
   parseDateInput,
+  parseDateEndInput,
   resolveTimeWindow,
 } from "../../src/core/time";
 
@@ -49,13 +50,27 @@ describe("parseSinceSpec", () => {
 });
 
 describe("parseDateInput", () => {
-  test("parses ISO date as UTC start of day", () => {
+  // 注意: bun test 默认 TZ=UTC，本地时区即 UTC
+  test("parses ISO date as local start of day", () => {
     const date = parseDateInput("2026-04-07");
     expect(date.toISOString()).toBe("2026-04-07T00:00:00.000Z");
   });
 
   test("throws on invalid date input", () => {
     expect(() => parseDateInput("2026/04/07")).toThrow();
+    expect(() => parseDateInput("2026-02-30")).toThrow();
+    expect(() => parseDateInput("2026-13-01")).toThrow();
+  });
+});
+
+describe("parseDateEndInput", () => {
+  test("parses ISO date as local end of day", () => {
+    const date = parseDateEndInput("2026-04-07");
+    expect(date.toISOString()).toBe("2026-04-07T23:59:59.999Z");
+  });
+
+  test("throws on invalid date input", () => {
+    expect(() => parseDateEndInput("2026-02-30")).toThrow();
   });
 });
 

@@ -21,17 +21,22 @@ export interface CodexSessionMetaPayload {
   git?: { remote_url?: string };
 }
 
+/** token usage 快照（total_token_usage / last_token_usage 共用结构） */
+export interface CodexTokenUsage {
+  input_tokens: number;
+  cached_input_tokens: number;
+  output_tokens: number;
+  reasoning_output_tokens?: number;
+  total_tokens: number;
+}
+
 /** event_msg payload: token_count */
 export interface CodexTokenCountPayload {
   type: "token_count";
   info: {
-    total_token_usage: {
-      input_tokens: number;
-      cached_input_tokens: number;
-      output_tokens: number;
-      reasoning_output_tokens?: number;
-      total_tokens: number;
-    };
+    total_token_usage: CodexTokenUsage;
+    /** 本次请求的增量用量（新版 Codex 提供） */
+    last_token_usage?: CodexTokenUsage;
   } | null;
 }
 

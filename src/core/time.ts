@@ -12,7 +12,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
  *
  * @param spec - 时间规格，如 "7d", "1m", "1y"
  * @param now  - 参考时间点，默认为当前时间
- * @returns 计算后的起始日期（时间归零到当天 00:00:00 UTC）
+ * @returns 计算后的起始日期（时间归零到本地时区当天 00:00:00）
  */
 export function parseSinceSpec(spec: string, now?: Date): Date {
   const match = spec.match(SPEC_PATTERN);
@@ -28,36 +28,50 @@ export function parseSinceSpec(spec: string, now?: Date): Date {
 
   switch (unit) {
     case "d":
-      result.setUTCDate(result.getUTCDate() - value);
+      result.setDate(result.getDate() - value);
       break;
     case "m":
-      result.setUTCMonth(result.getUTCMonth() - value);
+      result.setMonth(result.getMonth() - value);
       break;
     case "y":
-      result.setUTCFullYear(result.getUTCFullYear() - value);
+      result.setFullYear(result.getFullYear() - value);
       break;
   }
 
-  // 归零到当天 00:00:00 UTC
-  result.setUTCHours(0, 0, 0, 0);
+  // 归零到本地时区当天 00:00:00（与官方端的日统计口径一致）
+  result.setHours(0, 0, 0, 0);
 
   return result;
 }
 
-/**
- * 将 YYYY-MM-DD 字符串解析为 UTC 当天开始时间
- */
-export function parseDateInput(input: string): Date {
+/** 解析 YYYY-MM-DD 为年月日分量并校验 */
+function parseDateParts(input: string): [number, number, number] {
   if (!DATE_PATTERN.test(input)) {
     throw new Error(`无效的日期格式: "${input}"，支持格式: YYYY-MM-DD`);
   }
-
-  const date = new Date(`${input}T00:00:00.000Z`);
-  if (Number.isNaN(date.getTime())) {
+  const [y, m, d] = input.split("-").map((p) => parseInt(p, 10)) as [number, number, number];
+  // 用 Date 回读校验真实日期（如 2026-02-30 会翻转到 3 月）
+  const probe = new Date(y, m - 1, d);
+  if (probe.getFullYear() !== y || probe.getMonth() !== m - 1 || probe.getDate() !== d) {
     throw new Error(`无效的日期值: "${input}"`);
   }
+  return [y, m, d];
+}
 
-  return date;
+/**
+ * 将 YYYY-MM-DD 字符串解析为本地时区当天开始时间
+ */
+export function parseDateInput(input: string): Date {
+  const [y, m, d] = parseDateParts(input);
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+}
+
+/**
+ * 将 YYYY-MM-DD 字符串解析为本地时区当天结束时间（23:59:59.999）
+ */
+export function parseDateEndInput(input: string): Date {
+  const [y, m, d] = parseDateParts(input);
+  return new Date(y, m - 1, d, 23, 59, 59, 999);
 }
 
 export interface TimeWindowOptions {
@@ -73,7 +87,7 @@ export function resolveTimeWindow(
   now: Date = new Date(),
 ): { since: Date; until: Date } {
   const until = options.until
-    ? new Date(`${options.until}T23:59:59.999Z`)
+    ? parseDateEndInput(options.until)
     : new Date(now);
 
   const since = options.since
@@ -81,10 +95,6 @@ export function resolveTimeWindow(
       ? parseDateInput(options.since)
       : parseSinceSpec(options.since, now))
     : parseSinceSpec("7d", now);
-
-  if (Number.isNaN(until.getTime())) {
-    throw new Error(`无效的日期格式: "${options.until}"，支持格式: YYYY-MM-DD`);
-  }
 
   return { since, until };
 }
