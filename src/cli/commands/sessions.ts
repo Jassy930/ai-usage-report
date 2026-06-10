@@ -18,6 +18,7 @@ export async function sessionsCommand(args: ParsedArgs): Promise<string> {
       claudeDir: args.claudeDir,
     },
     since: args.since,
+    until: args.until,
     project: args.project,
     model: args.model,
   });

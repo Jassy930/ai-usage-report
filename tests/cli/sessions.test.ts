@@ -34,6 +34,25 @@ describe("sessions command", () => {
     expect(parsed.length).toBeLessThanOrEqual(1);
   });
 
+  test("sessions respects --until (回归: until 必须传入 collect)", async () => {
+    // 固件会话发生在 2026-04-03，until 截止到 04-02 应排除它
+    const excluded = await runCli([
+      "sessions", "codex", "--format", "json",
+      "--until", "2026-04-02",
+      ...rootArgs(),
+    ]);
+    expect(excluded.exitCode).toBe(0);
+    expect(JSON.parse(excluded.output)).toHaveLength(0);
+
+    const included = await runCli([
+      "sessions", "codex", "--format", "json",
+      "--until", "2026-04-03",
+      ...rootArgs(),
+    ]);
+    expect(included.exitCode).toBe(0);
+    expect(JSON.parse(included.output)).toHaveLength(1);
+  });
+
   test("sessions codex filters to codex only", async () => {
     const result = await runCli([
       "sessions",
